@@ -1,0 +1,11 @@
+#virtual invironment
+venv/
+
+#python cache
+__pycache__/
+
+#Flask specific files
+*.pyc
+
+#environment variables
+.env
