@@ -2,7 +2,7 @@ from flask import Flask, request, redirect , flash , url_for , render_template
 import psycopg2
 import db
 import logging
-from db import get_connection , get_cursor
+from db import get_connection , create_product_table,get_cursor , insert_sample_products,get_all_products
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -15,8 +15,17 @@ app.secret_key = 'key'
 @app.route('/')
 def home():
   db.create_user_table()
-  return "Welcome to the E-commerce Site!"
-
+  db.create_product_table()
+  # db.insert_sample_products()
+  products =db.get_all_products()
+  print("products")
+  print(products)
+  return render_template('home.html',products=products)
+  
+@app.route('/products')
+def products():
+  products = db.get_all_products()
+  return render_template('products.html' , products=products)
 
 @app.route('/register', methods = ['GET','POST'])
 def register():

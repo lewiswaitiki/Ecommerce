@@ -46,7 +46,7 @@ def create_user_table():
                           email VARCHAR(100) UNIQUE NOT NULL,
                           password_hash VARCHAR(128) NOT NULL); '''
                           
-        cursor.execute(create_table_query)
+        cursor.execute(create_table_query) 
         conn.commit()
         print("User table created successfully")
       except psycopg2.Error as e:
@@ -64,18 +64,54 @@ def create_user_table():
     print("no connection")
 
 
-def register_user(username,email,password):
+def create_product_table():
   conn = get_connection()
   cursor = get_cursor(conn)
   
-  insert_user_query = '''INSERT INTO users (username,email,password_hash)
-  VALUES(%s,%s,%s);''' 
-  cursor.execute(insert_user_query,(username,email,generate_password_hash(password)))
+  create_table_query = '''
+  CREATE TABLE IF NOT EXISTS products(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price NUMERIC(10,2) NOT NULL,
+    stock INT NOT NULL
+    );
+    '''
+  cursor.execute(create_table_query)
   conn.commit()
   cursor.close()
   conn.close()
   
+  
+def insert_sample_products():
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  
+  insert_product_query= '''INSERT INTO products(name,description,price,stock)VALUES(%s,%s,%s,%s);'''
+  
+  sample_products = [
+    ('sample product 1','Description for product 1',19.99,10),
+    ('sample product 2','Description for product 2',29.99,5),
+    ('sample product 3','Description for product 1',9.99,20)
+    ]
+  
+  cursor.executemany(insert_product_query,sample_products)
+  conn.commit()
+  cursor.close()
+  conn.close()
+
+def get_all_products():
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  select_products_query = '''SELECT id,name,description,price,stock FROM products;'''
+  cursor.execute(select_products_query)
+  products = cursor.fetchall()
+  cursor.close()
+  conn.close()
+  return products
+
   def generate_password_hash(password):
     #hashing function to generate password hash
     return psycopg2.extensions.PYCHARS(password)
+  
   

@@ -1,0 +1,32 @@
+<!-- templates/products.html -->
+
+<DOCTYPE html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta charset = "UTF-8">
+  <tittle>Products</tittle>
+</head>
+<body>
+  <h2>Products</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Description</th>
+        <th>price</th>
+        <th>stock</th>
+      </tr>
+    </thead>
+    <tbody>
+      {%for product in products%}
+      <tr>
+        <td>{{product[1]}}</td>
+        <td>{{product[2]}}</td>
+        <td>{{product[3]}}</td>
+        <td>{{product[4]}}</td>
+      </tr>
+      {%endfor%}
+    </tbody>
+  </table>
+</body>
+</html>
