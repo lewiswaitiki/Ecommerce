@@ -11,7 +11,9 @@
   <h3>Products</h3>
   <ul>
     {% for product in products %}
-    <li>{{product[1]}} - ${{product[3]}} ({{product[4]}} in stock) </li>
+    <li>
+      <img src="{{ url_for('static', filename=product[5][7:]) }}" alt="{{ product[1] }}" width="100"> <strong>{{ product[1] }}</strong> - ${{ product[3] }} ({{ product[4] }} in stock)<br> Category: {{ product[6] }}<br> Description: {{ product[2] }}
+    </li>
     {% endfor %}
   </ul>
 </body>

@@ -1,29 +1,33 @@
 <!-- templates/products.html -->
 
-<DOCTYPE html>
+<!DOCTYPE html>
 <head>
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <meta charset = "UTF-8">
-  <tittle>Products</tittle>
+  <title>Products</title>
 </head>
 <body>
   <h2>Products</h2>
   <table>
     <thead>
       <tr>
+        <th>Image</th>
         <th>Name</th>
         <th>Description</th>
         <th>price</th>
         <th>stock</th>
+        <th>Category</th>
       </tr>
     </thead>
     <tbody>
       {%for product in products%}
       <tr>
+        <td><img src="{{url_for('static',filename=product[5][7:])}}" alt="{{product[1]}}" width="30"></td>
         <td>{{product[1]}}</td>
         <td>{{product[2]}}</td>
         <td>{{product[3]}}</td>
         <td>{{product[4]}}</td>
+        <td>{{product[6]}}</td>
       </tr>
       {%endfor%}
     </tbody>

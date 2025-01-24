@@ -66,34 +66,47 @@ def create_user_table():
 
 def create_product_table():
   conn = get_connection()
-  cursor = get_cursor(conn)
-  
-  create_table_query = '''
-  CREATE TABLE IF NOT EXISTS products(
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    price NUMERIC(10,2) NOT NULL,
-    stock INT NOT NULL
-    );
-    '''
-  cursor.execute(create_table_query)
-  conn.commit()
-  cursor.close()
-  conn.close()
-  
+  if conn:
+    
+    cursor = get_cursor(conn)
+    
+    if cursor:
+      try:
+        create_table_query = '''
+        CREATE TABLE IF NOT EXISTS products(
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(100) NOT NULL,
+          description TEXT,
+          price NUMERIC(10,2) NOT NULL,
+          stock INT NOT NULL,
+          image_url VARCHAR(255),
+          category VARCHAR(50)
+          );
+          '''
+        cursor.execute(create_table_query)
+        conn.commit()
+        print("product table craeated successfully")
+      except psycopg2.Error as e:
+        print(f"Error executing query: {e}")
+      finally:
+        cursor.close()
+        conn.close()
+        print("Connection closed")
+    else:
+      print("Failed to create cursor")
+  else:
+    print("No connection")
   
 def insert_sample_products():
   conn = get_connection()
   cursor = get_cursor(conn)
   
-  insert_product_query= '''INSERT INTO products(name,description,price,stock)VALUES(%s,%s,%s,%s);'''
+  insert_product_query= '''INSERT INTO products(name,description,price,stock,image_url,category)VALUES(%s,%s,%s,%s,%s,%s);'''
   
-  sample_products = [
-    ('sample product 1','Description for product 1',19.99,10),
-    ('sample product 2','Description for product 2',29.99,5),
-    ('sample product 3','Description for product 1',9.99,20)
-    ]
+ 
+  
+  sample_products = [ ('Sample Product 1', 'Description for product 1', 19.99, 10, 'static/images/camera.jpg', 'electronics'), ('Sample Product 2', 'Description for product 2', 29.99, 5, 'static/images/icecream.jpg', 'food'), ('Sample Product 3', 'Description for product 3', 9.99, 20, 'static/images/cocacola.jpg', 'food') ]
+
   
   cursor.executemany(insert_product_query,sample_products)
   conn.commit()
@@ -103,12 +116,27 @@ def insert_sample_products():
 def get_all_products():
   conn = get_connection()
   cursor = get_cursor(conn)
-  select_products_query = '''SELECT id,name,description,price,stock FROM products;'''
+  select_products_query = '''SELECT id,name,description,price,stock,image_url,category FROM products;'''
   cursor.execute(select_products_query)
   products = cursor.fetchall()
   cursor.close()
   conn.close()
   return products
+
+def get_product_by_id(product_id):
+  conn = get_connection()
+  cursor=get_cursor(conn)
+  select_product_query = '''
+  SELECT id,name,description,price,stock,image_url,category FROM products
+  WHERE id =%s;
+  '''
+  
+  cursor.execute(select_product_query,(product_id,))
+  product =cursor.fetchone()
+  cursor.close()
+  conn.close()
+  return product
+
 
   def generate_password_hash(password):
     #hashing function to generate password hash

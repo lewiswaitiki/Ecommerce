@@ -1,0 +1,23 @@
+<!--templates/cart.html-->
+<!DOCTYPE html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" >
+  <tittle>Shopping Cart<tittle>
+</head>
+<body>
+  <h2>Shopping Cart</h2>
+  <ul>
+    {%for product in products%}
+    <li>
+      <img src="{{url_for('static',filename=product[5][7:])}}" alt="{{product[1]}}" width="100"> 
+      <strong>{{product[1]}}</strong> - ${{product[3]}}<br>
+      Category: {{product[6]}} <br>
+      Description: {{product[2]}} <br>
+      Quantity: 1 <!-- for simplicity we assume a quantity of 1 per product -->
+      <a href="{{url_for('remove_from_cart',product_id=product[0])}}">Remove</a>
+
+    </li>
+    {%endfor%}
+</body>
+</html>``
