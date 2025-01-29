@@ -4,7 +4,7 @@ import db
 import logging
 from db import get_connection , create_product_table,get_cursor , insert_sample_products,get_all_products,get_product_by_id
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 #initialize the flask app
@@ -111,7 +111,6 @@ def view_cart():
   product_ids = session['cart']
   for product_id in product_ids:
     product =db.get_product_by_id(product_id)
-    cart_products.append(product)
     if product:
       cart_products.append(product)
     else:
