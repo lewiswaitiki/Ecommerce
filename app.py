@@ -92,8 +92,18 @@ def add_to_cart(product_id):
     flash(f"product with ID {product_id} not found!")
     return redirect(url_for('home'))
   if 'cart' not in session:
-    session['cart']=[]
-  session['cart'].append(product_id)
+    session['cart']={}
+    
+  cart = {int(k): v for k , v in session['cart'].items()}
+  
+  if product_id in cart:
+    cart[product_id] +=1
+  else:
+    cart[product_id]=1
+    
+  session['cart']= cart
+  logging.info("------session cart after adding item------")
+  print(session['cart'])
   flash('Product added to cart!')
   print('Added to cart')
   return redirect(url_for('home'))
@@ -107,12 +117,15 @@ def view_cart():
     flash('Your cart is empty!')
     return redirect(url_for('home'))
   
+  cart = {int(k):v for k,v in session['cart'].items()}
   cart_products = []
   product_ids = session['cart']
-  for product_id in product_ids:
+  for product_id , quantity  in cart.items():
     product =db.get_product_by_id(product_id)
     if product:
-      cart_products.append(product)
+      cart_products.append((product,quantity))
+      logging.info("---cart products----")
+      print(cart_products)
     else:
       flash(f"Product with ID {product_id} not found!")
   
@@ -122,16 +135,53 @@ def view_cart():
 @app.route('/remove_from_cart/<int:product_id>')
 def remove_from_cart(product_id):
   if 'cart' in session:
+    logging.info("----cart to be deleted-----")
+    cart ={ int(k):v for k,v in session['cart'].items()}
+    print(cart)
     try:
-      session['cart'].remove(product_id)
+      
+      del cart[product_id]
+      print(f"product with id {product_id} removed")
       flash(f'product {product_id} removed from cart!')
     except ValueError:
       flash(f'product {product_id} not found in cart!')
       
     else:
       flash(f'No products in cart to remove.')
-    return redirect(url_for('view_cart'))
+    session['cart'] = cart
+  return redirect(url_for('view_cart'))
       
+      
+@app.route('/clear_session')
+def clear_session():
+  session.clear()
+  flash('Session cleared!')
+  return redirect(url_for('home'))
+  
+  
+@app.route('/update_quantity/<int:product_id>',methods=['POST'])
+def update_quantity(product_id):
+  try:
+    quantity = int(request.form['quantity'])
+    
+    if 'cart' in session:
+      cart = {int(k):v for k,v in session['cart'].items()}
+      if product_id in cart:
+        if quantity <=0:
+          del cart[product_id]
+        else:
+          cart[product_id] = quantity
+          session['cart']= cart
+          flash(f"Quantity for product {product_id} updated! ")
+      else:
+        flash(f"product {product_id} not found in cart")
+    else:
+      flash("No items in cart to update")
+    return redirect(url_for('view_cart'))
+  except Exception as e:
+    flash(f"An error eccurred: {e}")
+    return redirect(url_for('view_cart'))
+
 if __name__=='__main__':
   app.run(debug=True)
   
