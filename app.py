@@ -1,8 +1,14 @@
 from flask import Flask, request, redirect , flash ,session,url_for , render_template
 import psycopg2
+import werkzeug.security
 import db
+import werkzeug
+from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash
 import logging
 from db import get_connection , create_product_table,get_cursor , insert_sample_products,get_all_products,get_product_by_id
+
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -33,16 +39,20 @@ def register():
     username = request.form['username']
     email = request.form['email']
     password = request.form['password']
+    #hash password
+    # password_hash= werkzeug.security.generate_password_hash(password)
+    password_hash= generate_password_hash(password)
+    #create user data
     user = {'username':username,
             'email':email,
-            # 'password_hash':generate_password_hash(password)
-            'password':password
+            'password_hash':password_hash
             }
+    #save user to the database
     conn = get_connection()
     cursor = get_cursor(conn)
     insert_user_query = '''INSERT INTO users (username,email,password_hash)
     VALUES(%s,%s,%s);'''
-    cursor.execute(insert_user_query,(username,email,password))
+    cursor.execute(insert_user_query,(username,email,password_hash))
     conn.commit()
     cursor.close()
     conn.close()
@@ -57,7 +67,6 @@ def login():
     username = request.form['username']
     password  = request.form['password']
     
-    print(f"{username}\n{password}")
     
     if not username or not password:
       flash('please enter both username and password')
@@ -67,13 +76,14 @@ def login():
     try:
       # cursor=conn.cursor()
       with conn.cursor() as cursor:
-        select_user_query = '''SELECT id,password_hash FROM users WHERE username = %s AND password_hash = %s;'''
-        cursor.execute(select_user_query,(username,password))
+        select_user_query = '''SELECT id,password_hash FROM users WHERE username = %s ;'''
+        cursor.execute(select_user_query , (username,))
         user = cursor.fetchone()
         print("user")
         print(user)
-      if user:
+      if user and check_password_hash(user[1],password):
         flash('Login successful!')
+        session['user_id']= user[0]
         return redirect(url_for('home'))
       else:
           flash('invalid username or password')
@@ -181,7 +191,48 @@ def update_quantity(product_id):
   except Exception as e:
     flash(f"An error eccurred: {e}")
     return redirect(url_for('view_cart'))
+  
+@app.route('/profile' , methods = ['GET', 'POST'])
+def profile():
+  if 'user_id' not in session:
+    flash(f"please log in to  access your profile")
+    print(f"please log in to  access your profile")
+    return redirect(url_for('login'))
+  
+  user_id = session['user_id']
+  
+  if request.method == "POST":
+    username = request.form['username']
+    email = request.form['email']
 
+    conn = get_connection()
+  
+    try:
+      with conn.cursor()  as cursor:
+        update_user_query ='''UPDATE users SET username=%s, email=%s WHERE id =%s;'''
+        cursor.execute(update_user_query, (username,email,user_id))
+        conn.commit()
+        flash('profile updated successfully!')
+    except Exception as e:
+      flash(f"An error occurred.please try again later. {e}")
+      app.logger.error(f"profile update error {e}")
+      print(f"{e}")
+    
+    finally:
+      conn.close()
+  
+  conn = db.get_connection()
+  try:
+    with conn.cursor() as cursor:
+      select_user_query = '''SELECT  username,email FROM users  WHERE id=%s;'''
+      cursor.execute(select_user_query, (user_id,))
+      user = cursor.fetchone()
+  finally:
+    conn.close()
+    
+  print(user)
+  return render_template('profile.html',user=user)
+    
 if __name__=='__main__':
   app.run(debug=True)
   

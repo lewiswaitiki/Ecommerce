@@ -44,7 +44,7 @@ def create_user_table():
         create_table_query = '''CREATE TABlE IF NOT EXISTS users(id SERIAL PRIMARY KEY,
                           username VARCHAR(50) UNIQUE NOT NULL,
                           email VARCHAR(100) UNIQUE NOT NULL,
-                          password_hash VARCHAR(128) NOT NULL); '''
+                          password_hash VARCHAR(500) NOT NULL); '''
                           
         cursor.execute(create_table_query) 
         conn.commit()
