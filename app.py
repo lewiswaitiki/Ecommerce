@@ -7,7 +7,10 @@ from werkzeug.security import generate_password_hash
 from werkzeug.security import check_password_hash
 import logging
 from db import get_connection , create_product_table,get_cursor , insert_sample_products,get_all_products,get_product_by_id
-
+import requests
+from requests.auth import HTTPBasicAuth
+from datetime import datetime
+from base64 import b64decode
 
 
 logging.basicConfig(level=logging.INFO)
@@ -232,7 +235,23 @@ def profile():
     
   print(user)
   return render_template('profile.html',user=user)
-    
+
+
+@app.route('/mpesa_callback' , methods = ['POST'])
+def call_back_url():
+  data = request.get_json()
+
+  #process the callback data recieved
+  print(f"Callback data recieved: {data}")
+  if data:
+    print(data)
+  else:
+    print(f"No data ")
+  
+  return "Callback received",200
+
+
+
 if __name__=='__main__':
   app.run(debug=True)
   
