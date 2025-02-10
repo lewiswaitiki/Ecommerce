@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    <title>{% block title %}E-commerce Application{% endblock %}</title>
+</head>
+<body>
+    <nav>
+        <div class="navbar">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/profile" class="nav-link">Profile</a>
+            <a href="/logout" class="nav-link">Logout</a> <!-- Corrected 'class' typo -->
+        </div>
+    </nav>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+</body>
+</html>

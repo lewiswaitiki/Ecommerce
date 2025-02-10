@@ -251,6 +251,10 @@ def call_back_url():
   return "Callback received",200
 
 
+@app.route("/base_html")
+def base_html():
+  return render_template("base.html")
+
 
 if __name__=='__main__':
   app.run(debug=True)
