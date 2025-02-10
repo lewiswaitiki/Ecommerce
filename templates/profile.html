@@ -2,7 +2,7 @@
 {%block title%}Profile {%endblock%}
 {%block content%}
 <h2>User Profile</h2>
-<form action ={{url_for('profile')}} method = "POST">
+<form action ={{url_for('profile')}} method = "POST" class="profile-form">
   <div class="form-group">
     <label for='username'>Username:</label>
     <input type ="text" name="username" id="username" class="form-control" value="{{user[0]}}" required><br>

@@ -98,6 +98,14 @@ def login():
   return render_template(('login.html'))
 
 
+@app.route('/logout')
+def logout():
+  #clear the session
+  session.clear()
+  # redirect to the login page
+  return redirect(url_for('login'))
+
+
 @app.route('/add_to_cart/<int:product_id>')
 def add_to_cart(product_id):
   product =get_product_by_id(product_id)
