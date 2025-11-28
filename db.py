@@ -173,3 +173,119 @@ def get_product_by_id(product_id):
     return psycopg2.extensions.PYCHARS(password)
   
   
+ 
+# return all categories  
+def get_all_categories():
+  
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  
+  query = '''SELECT DISTINCT category FROM products ORDER BY category'''
+  
+  try:
+    cursor.execute(query)
+    # categories = cursor.fetchall()
+    categories = [row[0] for row in cursor.fetchall()]
+    print(type(categories))
+    return categories
+  except Exception as e:
+    print(f"Error getting categories {e}")
+    return []
+  finally:
+    cursor.close()
+    conn.close()
+  
+# categories = get_all_categories()
+# print(f"categories {categories}")
+
+
+# get fltered products
+def get_filtered_products(search_query='', categories=None, min_price=None, max_price=None, 
+                        rating=None, in_stock_only=False, sort_by='featured'):
+  conn = get_connection()
+  cursor=get_cursor(conn)
+  
+  
+  try:
+        # Base query
+        query = """
+            SELECT * FROM products 
+            WHERE 1=1
+        """
+        params = []
+        
+        # Search filter
+        if search_query:
+            query += " AND (name ILIKE %s OR description ILIKE %s)"
+            params.extend([f'%{search_query}%', f'%{search_query}%'])
+        
+        # Category filter
+        if categories:
+            placeholders = ','.join(['%s'] * len(categories))
+            query += f" AND category IN ({placeholders})"
+            params.extend(categories)
+        
+        # Price range filter
+        if min_price is not None:
+            query += " AND price >= %s"
+            params.append(min_price)
+        
+        if max_price is not None:
+            query += " AND price <= %s"
+            params.append(max_price)
+        
+        # Rating filter
+        if rating is not None:
+            query += " AND rating >= %s"
+            params.append(rating)
+        
+        # Stock filter
+        if in_stock_only:
+            query += " AND stock > 0"
+        
+        # Sorting
+        sort_options = {
+            'featured': 'id DESC',
+            'price-low': 'price ASC',
+            'price-high': 'price DESC',
+            'name': 'name ASC',
+            'rating': 'rating DESC',
+            'newest': 'created_at DESC'
+        }
+        sort_clause = sort_options.get(sort_by, 'id DESC')
+        query += f" ORDER BY {sort_clause}"
+        print(f'paramsssss {params}')
+        cursor.execute(query, params)
+        products = cursor.fetchall()
+        return products
+        
+  except Exception as e:
+        print(f"Error filtering products: {e}")
+        return []
+  finally:
+        cursor.close()
+        conn.close()
+    
+# products_filtered=get_filtered_products(search_query='Sample', categories=['electronics'], min_price=10, max_price=30, in_stock_only=True, sort_by='price-low')
+# print(f"filtered products: {products_filtered}")
+  
+  
+# get product by category
+def get_product_by_category(category):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  query = '''SELECT * FROM products WHERE category = %s ORDER BY name'''
+  try:
+    cursor.execute(query,(category,))
+    products= cursor.fetchall()
+    return(products)
+  except Exception as ex:
+    print(f"Error getting products by category:{ex}")
+    
+  finally :
+    conn.close()
+    cursor.close()
+    
+    
+# products_by_category = get_product_by_category('food')
+# print(f"products by category {products_by_category}")

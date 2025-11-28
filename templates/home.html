@@ -3,12 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Unity Store</title>
+  <title>Unity Store - Products</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-  <link rel="stylesheet" href="../static/css/styles.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <script src="script.js" defer></script> <!-- Use defer to ensure the script runs after DOM load --></head>
 <body>
     <header>
       <div class="header-container">
@@ -16,35 +14,277 @@
           <nav>
               <ul>
                   <li><a href="{{url_for('home')}}"><i class="fas fa-home"></i> Home</a></li>
-                  <li><a href="cart.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
+                  <li><a href="cart.html"><i class="fas fa-shopping-cart"></i> Cart <span class="cart-count">0</span></a></li>
                   <li><a href="orders.html"><i class="fas fa-shopping-bag"></i> Orders</a></li>
                   <li><a href="checkout.html"><i class="fas fa-credit-card"></i> Checkout</a></li>       
               </ul>
           </nav>
       </div>
     </header>
+
     <main>
-      <section id="products">
-        {% for product in products %}
-          <a href="{{ url_for('product_detail', product_id=product[0]) }}" class="product-link">
-            <div class="product">
-                <img src="{{ url_for('static', filename=product[5][7:]) }}" alt="product 1">
-                <h2>{{product[1]}}</h2>
-                <p>{{product[3]}}</p>
-                <!--Quantity input for product 1-->
-                <label for="--Quantity-1">In Stock: {{product[4]}}</label>
-                <!--label for="--Quantity-1">Quantity:</label -->
-                <input type="number" name="" id="quantity-1" value="1" min="1">
-                <button onclick="addToCart(1,'KES 100','images/leopold-maitre-ZFdIqF4xUFg-unsplash.jpg')">Add to cart</button>
+      <div class="products-container">
+        <!-- Filter Sidebar -->
+        <aside class="filter-sidebar">
+          <form id="filter-form" method="GET" action="{{ url_for('home') }}">
+            <div class="filter-header">
+              <h3><i class="fas fa-filter"></i> Filters</h3>
+              <button type="button" class="clear-filters" onclick="clearFilters()">Clear All</button>
             </div>
-          </a>
-        {% endfor %}
-        <!--add more products-->
-      </section>
+
+            <!-- Search Filter -->
+            <div class="filter-group">
+              <div class="filter-title">
+                <h4>Search</h4>
+              </div>
+              <div class="search-box">
+                <input type="text" 
+                placeholder="Search products..." 
+                id="search-input"
+                name="search"
+                value="{{ search_query }}">
+                <i class="fas fa-search"></i>
+              </div>
+            </div>
+
+            <!-- Price Filter -->
+            <div class="filter-group">
+              <div class="filter-title">
+                <h4>Price Range</h4>
+              </div>
+              <div class="price-inputs">
+                <div class="input-group">
+                  <label>Min</label>
+                  <input type="number" 
+                        placeholder="Ksh 0" 
+                        id="min-price"
+                        name="min_price"
+                        value="{{ min_price or '' }}">
+                </div>
+                <div class="input-group">
+                  <label>Max</label>
+                  <input type="number" 
+                        placeholder="Ksh 100,000" 
+                        id="max-price"
+                        name="max_price"
+                        value="{{ max_price or '' }}">
+                </div>
+              </div>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="filter-group">
+              <div class="filter-title">
+                <h4>Categories</h4>
+              </div>
+              <div class="category-list">
+                {% for category in categories %}
+                <label class="category-item">
+                  <input type="checkbox" 
+                        name="category" 
+                        value="{{ category }}"
+                        {% if category in selected_categories %}checked{% endif %}>
+                  <span class="checkmark"></span>
+                  {{ category }}
+                  <span class="item-count">({{
+                    products|selectattr("category", "equalto", category)|list|length
+                  }})</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Rating Filter -->
+            <div class="filter-group">
+              <div class="filter-title">
+                <h4>Customer Rating</h4>
+              </div>
+              <div class="rating-filters">
+                <label class="rating-item">
+                  <input type="radio" name="rating" value="4" {% if rating_filter == 4 %}checked{% endif %}>
+                  <span class="stars">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                  </span>
+                  <span>& Up</span>
+                </label>
+                <label class="rating-item">
+                  <input type="radio" name="rating" value="3" {% if rating_filter == 3 %}checked{% endif %}>
+                  <span class="stars">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="far fa-star"></i>
+                  </span>
+                  <span>& Up</span>
+                </label>
+                <label class="rating-item">
+                  <input type="radio" name="rating" value="2" {% if rating_filter == 2 %}checked{% endif %}>
+                  <span class="stars">
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="fas fa-star"></i>
+                    <i class="far fa-star"></i>
+                    <i class="far fa-star"></i>
+                  </span>
+                  <span>& Up</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Stock Filter -->
+            <div class="filter-group">
+              <div class="filter-title">
+                <h4>Availability</h4>
+              </div>
+              <div class="stock-filters">
+                <label class="stock-item">
+                  <input type="checkbox" name="in_stock" value="true" {% if in_stock_only %}checked{% endif %}>
+                  <span class="checkmark"></span>
+                  In Stock Only
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" class="apply-filters-btn">
+              <i class="fas fa-check"></i>
+              Apply Filters
+            </button>
+          </form>
+        </aside>
+
+        <!-- Products Section -->
+        <section class="products-main">
+          <div class="products-header">
+            <div class="results-info">
+              <h2>All Products</h2>
+              <span class="results-count">Showing {{ products|length }} products</span>
+            </div>
+            <div class="sort-options">
+              <form id="sort-form" method="GET">
+                <input type="hidden" name="search" value="{{ search_query }}">
+                {% for category in selected_categories %}
+                <input type="hidden" name="category" value="{{ category }}">
+                {% endfor %}
+                <input type="hidden" name="min_price" value="{{ min_price or '' }}">
+                <input type="hidden" name="max_price" value="{{ max_price or '' }}">
+                {% if rating_filter %}
+                <input type="hidden" name="rating" value="{{ rating_filter }}">
+                {% endif %}
+                {% if in_stock_only %}
+                <input type="hidden" name="in_stock" value="true">
+                {% endif %}
+                
+                <select id="sort-select" name="sort" onchange="this.form.submit()">
+                  <option value="featured" {% if sort_by == 'featured' %}selected{% endif %}>Sort by: Featured</option>
+                  <option value="price-low" {% if sort_by == 'price-low' %}selected{% endif %}>Price: Low to High</option>
+                  <option value="price-high" {% if sort_by == 'price-high' %}selected{% endif %}>Price: High to Low</option>
+                  <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name: A to Z</option>
+                  <option value="rating" {% if sort_by == 'rating' %}selected{% endif %}>Highest Rated</option>
+                  <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest First</option>
+                </select>
+              </form>
+              <div class="view-options">
+                <button class="view-btn active" data-view="grid">
+                  <i class="fas fa-th"></i>
+                </button>
+                <button class="view-btn" data-view="list">
+                  <i class="fas fa-list"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="products-grid" id="products-container">
+            {% for product in products %}
+              <a href="{{ url_for('product_detail', product_id=product[0]) }}" class="product-link">
+                <div class="product-card">
+                  <div class="product-image">
+                    <img src="{{ url_for('static', filename=product[5][7:]) }}" alt="{{ product[1] }}">
+                    {% if product[6] %}
+                    <span class="discount-badge">-{{ product[6] }}%</span>
+                    {% endif %}
+                    <button class="quick-view-btn" data-product-id="{{ product[0] }}">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </div>
+                  <div class="product-info">
+                    <h3 class="product-title">{{ product[1] }}</h3>
+                    <p class="product-description">{{ product[2][:100] }}{% if product[2]|length > 100 %}...{% endif %}</p>
+                    
+                    <div class="product-meta">
+                      <div class="rating">
+                        {% for i in range(5) %}
+                          {% if i < (product[7] or 4) %}
+                            <i class="fas fa-star"></i>
+                          {% else %}
+                            <i class="far fa-star"></i>
+                          {% endif %}
+                        {% endfor %}
+                        <span class="review-count">({{ product[8] or 128 }})</span>
+                      </div>
+                      <div class="stock-info">
+                        {% if product[4] > 0 %}
+                          <span class="in-stock"><i class="fas fa-check-circle"></i> In Stock</span>
+                        {% else %}
+                          <span class="out-of-stock"><i class="fas fa-times-circle"></i> Out of Stock</span>
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    <div class="product-price">
+                      <span class="current-price">Ksh {{ "{:,.2f}".format(product[3]) }}</span>
+                      {% if product[9] %}
+                      <span class="original-price">Ksh {{ "{:,.2f}".format(product[9]) }}</span>
+                      {% endif %}
+                    </div>
+
+                    <div class="product-actions">
+                      {% if product[4] > 0 %}
+                        <div class="quantity-control">
+                          <button class="qty-btn minus" data-product="{{ product[0] }}">-</button>
+                          <input type="number" class="quantity-input" value="1" min="1" max="{{ product[4] }}" data-product="{{ product[0] }}">
+                          <button class="qty-btn plus" data-product="{{ product[0] }}">+</button>
+                        </div>
+                        <button class="add-to-cart-btn" data-product-id="{{ product[0] }}" data-product-name="{{ product[1] }}" data-product-price="{{ product[2] }}">
+                          <i class="fas fa-shopping-cart"></i>
+                          Add to Cart
+                        </button>
+                      {% else %}
+                        <button class="notify-btn" disabled>
+                          <i class="fas fa-bell"></i>
+                          Notify Me
+                        </button>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+
+          {% if products|length == 0 %}
+          <div class="no-products">
+            <i class="fas fa-search fa-3x"></i>
+            <h3>No products found</h3>
+            <p>Try adjusting your filters or search terms</p>
+            <button onclick="clearFilters()" class="clear-filters-btn">Clear All Filters</button>
+          </div>
+          {% endif %}
+        </section>
+      </div>
     </main>
+
     <footer>
-      <p>&copy; 2025 Unity Store. All rights reserved.</p>
+      <div class="footer-container">
+        <p>&copy; 2025 Unity Store. All rights reserved.</p>
+      </div>
     </footer>
 
+    <script src="../static/js/products.js"></script>
 </body>
 </html>

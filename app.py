@@ -1,5 +1,4 @@
 from flask import Flask, request, redirect , flash ,session,url_for , render_template
-import psycopg2
 import db
 import logging
 from db import get_connection , create_product_table,get_cursor , insert_sample_products,get_all_products,get_product_by_id
@@ -12,21 +11,90 @@ app = Flask(__name__)
 app.secret_key = 'key'
 
 
-@app.route('/')
+
+
+
+@app.route('/home')
 def home():
-  db.create_user_table()
-  db.create_product_table()
+  # db.create_user_table()
+  # db.create_product_table()
   # db.insert_sample_products()
-  products =db.get_all_products()
-  print(f"products{products}")
-  print(type(products))
-  return render_template('home.html',products=products)
+  # products =db.get_all_products()
+  # return render_template('home.html',products=products)
+    search_query = request.args.get('search', '').strip()
+    category_filter = request.args.getlist('category')
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
+    rating_filter = request.args.get('rating', type=int)
+    in_stock_only = request.args.get('in_stock', type=bool)
+    sort_by = request.args.get('sort', 'featured')
+    
+    # get filtered products
+    products = db.get_filtered_products(
+      search_query =search_query,
+      categories = category_filter,
+      min_price = min_price,
+      max_price = max_price,
+      rating = rating_filter,
+      in_stock_only = in_stock_only,
+      sort_by = sort_by
+    )
+    
+    # Get unique categories for filter sidebar
+    categories = db.get_all_categories()
+    
+    
+    return render_template('home.html' , 
+                          products=products,
+                          categories = categories,
+                          search_query=search_query,
+                          selected_categories=category_filter,
+                          min_price=min_price,
+                          max_price=max_price,
+                          rating_filter=rating_filter,
+                          in_stock_only=in_stock_only,
+                          sort_by=sort_by
+                          )
+
   
   
 @app.route('/products')
 def products():
-  products = db.get_all_products()
-  return render_template('products.html' , products=products)
+  # get filter parameters from query string
+    search_query = request.args.get('search', '').strip()
+    category_filter = request.args.getlist('category')
+    min_price = request.args.get('min_price', type=float)
+    max_price = request.args.get('max_price', type=float)
+    rating_filter = request.args.get('rating', type=int)
+    in_stock_only = request.args.get('in_stock', type=bool)
+    sort_by = request.args.get('sort', 'featured')
+    
+    # get filtered products
+    products = db.get_filtered_products(
+      search_query =search_query,
+      categories = category_filter,
+      min_price = min_price,
+      max_price = max_price,
+      rating = rating_filter,
+      in_stock_only = in_stock_only,
+      sort_by = sort_by
+    )
+    
+    # Get unique categories for filter sidebar
+    categories = db.get_all_categories()
+    
+    
+    return render_template('products.html' , 
+                          products=products,
+                          categories = categories,
+                          search_query=search_query,
+                          selected_categories=category_filter,
+                          min_price=min_price,
+                          max_price=max_price,
+                          rating_filter=rating_filter,
+                          in_stock_only=in_stock_only,
+                          sort_by=sort_by
+                          )
 
 
 @app.route('/product/<int:product_id>')
