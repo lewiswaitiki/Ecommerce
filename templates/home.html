@@ -1,5 +1,5 @@
 <!--templates/home.html-->
-<!DOCTYPE html>
+<!--!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -16,5 +16,52 @@
     </li>
     {% endfor %}
   </ul>
+</body>
+</html -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-commerce Website</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+  <link rel="stylesheet" href="../static/css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="script.js" defer></script> <!-- Use defer to ensure the script runs after DOM load --></head>
+<body>
+  <header>
+    <h1>Unity Store</h1>
+    <nav>
+      <ul>
+        <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+        <li><a href="cart.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
+        <li><a href="checkout.html"><i class="fas fa-credit-card"></i> Checkouts</a></li>       
+      </ul>
+    </nav>
+  </header>
+    <main>
+      <section id="products">
+        {% for product in products %}
+          <div class="product">
+            <img src="{{ url_for('static', filename=product[5][7:]) }}" alt="product 1">
+            <h2>{{product[1]}}</h2>
+            <p>{{product[3]}}</p>
+            <!--Quantity input for product 1-->
+            <label for="--Quantity-1">In Stock: {{product[4]}}</label>
+            <!--label for="--Quantity-1">Quantity:</label -->
+            <input type="number" name="" id="quantity-1" value="1" min="1">
+            <button onclick="addToCart(1,'KES 100','images/leopold-maitre-ZFdIqF4xUFg-unsplash.jpg')">Add to cart</button>
+        </div>
+        {% endfor %}
+        <!--add more products-->
+      </section>
+    </main>
+    <footer>
+      <p>&copy; 2024 Unity Store. All rights reserved.</p>
+    </footer>
+
 </body>
 </html>

@@ -12,9 +12,9 @@ Logger.setLevel(logging.DEBUG)
 def get_connection():
   ##Database connection parameters
   conn_params = {
-    'dbname':'ecommerce',
-    'user':'ecom',
-    'password':"ecom",
+    'dbname':'ecommerce_db',
+    'user':'ecommerce_admin',
+    'password':"password",
     'host':'localhost',
     "port":5432
   }
@@ -109,6 +109,18 @@ def insert_sample_products():
 
   
   cursor.executemany(insert_product_query,sample_products)
+  conn.commit()
+  cursor.close()
+  conn.close()
+  
+  
+def insert_product(name,description,price,stock,image_url,category):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  
+  query= '''INSERT INTO products(name,description,price,stock,image_url,category)VALUES(%s,%s,%s,%s,%s,%s);'''
+  cursor.execute(query , (name,description,price,stock,image_url,category))
+  
   conn.commit()
   cursor.close()
   conn.close()

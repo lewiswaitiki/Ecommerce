@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset="UTF-8">
+    <meta name = "viewport" content = "width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Unity| Add Product</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/add_product.css') }}">
+    <link rel="stylesheet" href="../static/css/add_product.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <h1>Unity Store</h1>
+        <nav>
+        <ul>
+            <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="cart.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
+            <li><a href="checkout.html"><i class="fas fa-credit-card"></i> Checkouts</a></li>      
+        </ul>
+        </nav>
+    </header>
+    <section class="add-product-section=">
+        <div class="add-image-section" id="row">
+            <div class="image-upload" id="drop-zone">
+                <p>Drop your image here or <label for="product-image" class="browse-link">Browse</label></p>
+                <input type="file" id="product-image" name="product-image" accept="image/*" hidden>
+                <div class="preview-container">
+                    <img id="preview-img" src="{{ url_for('static', filename='images/placeholder.png') }}" alt="Image Preview">
+                </div>
+            </div>
+        </div>
+
+        <div class="add-form-section" id="row">
+            <form method="POST" action="{{url_for('add_product')}}">
+                <label for="product_name">Product name:</label>
+                <input type="text" id="name" name="name" required>
+                <label for="price">Price:</label>
+                <input type="text" id="price" name="price" required>
+                <label for="quantity">Quantity:</label>
+                <input type="text" id="quantity" name="quantity" required>
+                <label for="image_url">Image:</label>
+                <input type="text" id="image_url" name="image_url" required>
+                <label for="category">Category:</label>
+                <select id="category" name="category" required>
+                    <option value="" disabled selected>Select category</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Books">Books</option>
+                    <option value="Home & Kitchen">Home & Kitchen</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Toys">Toys</option>
+                </select>
+                <label for="description">Description:</label>
+                <textarea id="description" name="description" required></textarea>
+                <button type="submit">Add Product</button>
+            </form>
+        <div>
+
+    </section>
+        <script src="{{ url_for('static', filename='js/add_product.js') }}"></script>
+        
+</body>
+</html>

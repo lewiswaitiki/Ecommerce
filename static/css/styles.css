@@ -1,0 +1,182 @@
+/* general styling */
+
+:root {
+    --primary-color: #ffffff;
+    --secondary-color: #f9f9f9;
+    --accent-color: #4CAF50; /* modern green */
+    --accent-hover: #45a049;
+    --text-color: #333;
+    --border-color: #ddd;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+
+*{
+  font-family: Arial,sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body{
+
+}
+
+header{
+  background-color: #333;
+  background-color:var(--accent-color);
+  width: 100%;
+  display: flex;
+  gap: 3rem;
+  padding: 1.5rem;
+  align-items: center;
+}
+
+header nav {
+
+}
+
+nav a {
+  color: white;
+  margin: 0 15px;
+  text-decoration: none;
+  padding: 0.5rem;
+  transition: background-color 0.3s;
+}
+
+
+header h1{
+  color: white;
+  font-size: 1.5rem;
+}
+
+header ul{
+  display: flex;
+  gap: 1rem;
+}
+
+header ul li {
+text-decoration: none;
+list-style: none;
+}
+header ul li a{
+text-decoration: none;
+}
+
+
+nav a:hover {
+  background-color: #555;
+  padding: 0.5rem;
+  border-radius: 5px;
+}
+
+
+footer {
+  background-color: #333;
+  color: white;
+  text-align: center;
+  padding: 1rem;
+
+}
+
+
+
+
+main{
+  padding: 20px;
+
+}
+
+
+
+
+
+#products{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+/*product styling */
+#products .product {
+  text-align: center;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap:0.5rem;
+  transition: box-shadow 0.3s;
+  transition: transform 0.3s ease;
+}
+
+#products .product:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  transform: scale(1.03);
+}
+
+#products .product img {
+  /* max-width: 100%; */
+  height: 300px;
+  width: 100%;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+
+button{
+  padding: 10px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+#confirm_btn {
+  display: block; /* Make it a block element */
+  margin: 20px auto; /* Center it horizontally with auto margins */
+  background-color: #4CAF50; /* Green background */
+  color: white; /* White text color */
+  padding: 10px 20px; /* Top/bottom and left/right padding */
+  border: none; /* Remove border */
+  border-radius: 5px; /* Rounded corners */
+  font-size: 16px; /* Larger font size */
+  cursor: pointer; /* Change cursor on hover */
+  transition: background-color 0.3s ease; /* Smooth transition for background color */
+}
+
+/* Hover effect */
+#confirm_btn:hover {
+  background-color: #45a049; /* Darker green on hover */
+}
+
+
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  z-index: 1000;
+  animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+
+@keyframes fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeout {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.whatsapp_icon{
+  text-align:right;
+}
