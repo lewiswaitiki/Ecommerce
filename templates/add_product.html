@@ -11,14 +11,17 @@
 </head>
 <body>
     <header>
-        <h1>Unity Store</h1>
-        <nav>
-        <ul>
-            <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
-            <li><a href="cart.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
-            <li><a href="checkout.html"><i class="fas fa-credit-card"></i> Checkouts</a></li>      
-        </ul>
-        </nav>
+        <div class="header-container">
+            <h1>Unity Store</h1>
+            <nav>
+                <ul>
+                    <li><a href="{{url_for('home')}}"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="cart.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
+                    <li><a href="orders.html"><i class="fas fa-shopping-bag"></i> Orders</a></li>
+                    <li><a href="checkout.html"><i class="fas fa-credit-card"></i> Checkout</a></li>       
+                </ul>
+            </nav>
+        </div>
     </header>
     <section class="add-product-section=">
         <div class="add-image-section" id="row">
@@ -32,7 +35,7 @@
         </div>
 
         <div class="add-form-section" id="row">
-            <form method="POST" action="{{url_for('add_product')}}">
+            <form method="POST" action="{{url_for('add_product')}}" enctype="multipart/form-data">
                 <label for="product_name">Product name:</label>
                 <input type="text" id="name" name="name" required>
                 <label for="price">Price:</label>

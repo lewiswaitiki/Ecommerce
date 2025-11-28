@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ product.name }} - Unity Store</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/product_detail.css') }}">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1>Unity Store</h1>
+            <nav>
+                <ul>
+                    <li><a href="{{url_for('home')}}"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="cart.html"><i class="fas fa-shopping-cart"></i> Cart</a></li>
+                    <li><a href="orders.html"><i class="fas fa-shopping-bag"></i> Orders</a></li>
+                    <li><a href="checkout.html"><i class="fas fa-credit-card"></i> Checkout</a></li>       
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="product-container">
+            <!-- Left Column - Images -->
+            <div class="image-section">
+                <div class="main-image">
+                    <img src="{{ url_for('static', filename=product.image_url[7:]) }}" alt="product 1">
+                </div>
+                <div class="image-thumbnails">
+                    <div class="thumbnail active">
+                        <img src="{{ product.image_url or '/static/images/placeholder.jpg' }}" alt="{{ product.name }}">
+                    </div>
+                    <!-- Add more thumbnails here if available -->
+                    <div class="thumbnail">
+                        <img src="/static/images/placeholder2.jpg" alt="Product view 2">
+                    </div>
+                    <div class="thumbnail">
+                        <img src="/static/images/placeholder3.jpg" alt="Product view 3">
+                    </div>
+                </div>
+                
+                <!-- Product Description -->
+                <div class="product-description">
+                    <h3>Product Description</h3>
+                    <p>{{ product.description }}</p>
+                </div>
+            </div>
+
+            <!-- Right Column - Product Details -->
+            <div class="info-section">
+                <div class="product-info">
+                    <h1 class="product-title">{{ product.name }}</h1>
+                    
+                    <div class="price-section">
+                        <span class="current-price">KES{{ "%.2f"|format(product.price) }}</span>
+                        {% if product.original_price %}
+                        <span class="original-price">KES{{ "%.2f"|format(product.original_price) }}</span>
+                        <span class="discount-badge">Save {{ ((product.original_price - product.price) / product.original_price * 100)|round|int }}%</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="rating-section">
+                        <div class="stars">
+                            {% for i in range(5) %}
+                                {% if i < (product.rating or 4) %}
+                                    <i class="fas fa-star"></i>
+                                {% else %}
+                                    <i class="far fa-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <span class="review-count">({{ product.review_count or 128 }} reviews)</span>
+                    </div>
+
+                    <div class="stock-info">
+                        {% if product.stock > 0 %}
+                            <span class="in-stock"><i class="fas fa-check-circle"></i> In Stock ({{ product.stock }} available)</span>
+                        {% else %}
+                            <span class="out-of-stock"><i class="fas fa-times-circle"></i> Out of Stock</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="category-section">
+                        <strong>Category:</strong> 
+                        <span class="category-tag">{{ product.category }}</span>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        {% if product.stock > 0 %}
+                            <div class="quantity-selector">
+                                <label for="quantity">Quantity:</label>
+                                <div class="quantity-controls">
+                                    <button type="button" class="quantity-btn" id="decrease-qty">-</button>
+                                    <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{ product.stock }}">
+                                    <button type="button" class="quantity-btn" id="increase-qty">+</button>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary add-to-cart">
+                                <i class="fas fa-shopping-cart"></i>
+                                Add to Cart
+                            </button>
+                            
+                            <button class="btn btn-secondary buy-now">
+                                <i class="fas fa-bolt"></i>
+                                Buy Now
+                            </button>
+                        {% else %}
+                            <button class="btn btn-disabled" disabled>
+                                <i class="fas fa-bell"></i>
+                                Notify When Available
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- Additional Features -->
+                    <div class="product-features">
+                        <div class="feature">
+                            <i class="fas fa-shipping-fast"></i>
+                            <span>Free shipping on orders over KES 5000</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-undo"></i>
+                            <span>30-day return policy</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>2-year warranty included</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-container">
+            <p>&copy; 2025 Unity Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{{url_for('static', filename='js/product_detail.js')}}"></script>
+</body>
+</html>

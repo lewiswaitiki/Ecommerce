@@ -103,7 +103,7 @@ def insert_sample_products():
   
   insert_product_query= '''INSERT INTO products(name,description,price,stock,image_url,category)VALUES(%s,%s,%s,%s,%s,%s);'''
   
- 
+
   
   sample_products = [ ('Sample Product 1', 'Description for product 1', 19.99, 10, 'static/images/camera.jpg', 'electronics'), ('Sample Product 2', 'Description for product 2', 29.99, 5, 'static/images/icecream.jpg', 'food'), ('Sample Product 3', 'Description for product 3', 9.99, 20, 'static/images/cocacola.jpg', 'food') ]
 
@@ -138,16 +138,34 @@ def get_all_products():
 def get_product_by_id(product_id):
   conn = get_connection()
   cursor=get_cursor(conn)
-  select_product_query = '''
-  SELECT id,name,description,price,stock,image_url,category FROM products
-  WHERE id =%s;
-  '''
+  try:
+    
+    select_product_query = '''
+    SELECT id,name,description,price,stock,image_url,category FROM products
+    WHERE id =%s;
+    '''
+    cursor.execute(select_product_query,(product_id,))
+    product =cursor.fetchone()
+    if not product:
+      return None
+    
+    return {
+      'id':product[0],
+      'name':product[1],
+      'description':product[2],
+      'price':float(product[3]),
+      'stock':product[4],
+      'image_url':product[5],
+      'category':product[6]
+    }
+    
+  except Exception as ex:
+    Logger.error(f"Error fetching product by ID: {ex}")
+    return None
   
-  cursor.execute(select_product_query,(product_id,))
-  product =cursor.fetchone()
-  cursor.close()
-  conn.close()
-  return product
+  finally:
+    cursor.close()
+    conn.close()
 
 
   def generate_password_hash(password):

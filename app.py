@@ -22,12 +22,20 @@ def home():
   print(type(products))
   return render_template('home.html',products=products)
   
+  
 @app.route('/products')
 def products():
   products = db.get_all_products()
   return render_template('products.html' , products=products)
 
 
+@app.route('/product/<int:product_id>')
+def product_detail(product_id):
+  product = db.get_product_by_id(product_id)
+  if product is None:
+    flash(f"Product with ID {product_id} not found!", "error")
+    return redirect(url_for('home'))
+  return render_template('product_detail.html', product=product)
 
 
 # add product route
