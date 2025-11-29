@@ -1,25 +1,62 @@
 <!DOCTYPE html>
-<html lang = 'en'>
+<html lang='en'>
 <head>
   <meta charset="UTF-8">
-    <meta name="viewport" contontet = "width=device-width,initial-sclae =1.0">
-    <title>Register</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unity - Signup</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
 </head>
 <body>
-  <h2>Register</h2>
-  <form method="POST" action = "{{url_for('register')}}">
-    <label for="username">Username:</label>
-    <input type="text" id="username" name="username" required>
-    <br><br>
-    <label for="email">Email</label>
-    <input type="email" id="email" name="email" required>
-    <br></br>
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required>
-    <br></br>
-    <button type="submit">Register</button>
-  </form>  
+  <div class="register-container">
+    <h2>Create Your Account</h2>
+
+    <form method="POST" action="{{ url_for('signup') }}">
+      <!-- Row 1: First Name & Last Name -->
+      <div class="form-row">
+        <div class="input-group">
+          <label for="firstname">First Name:</label>
+          <input type="text" id="firstname" name="firstname" required>
+        </div>
+        <div class="input-group">
+          <label for="secondname">Last Name:</label>
+          <input type="text" id="secondname" name="secondname" required>
+        </div>
+      </div>
+
+      <!-- Row 2: Username & Phone -->
+      <div class="form-row">
+        <div class="input-group">
+          <label for="username">Username:</label>
+          <input type="text" id="username" name="username" required>
+        </div>
+        <div class="input-group">
+          <label for="phone">Phone:</label>
+          <input type="tel" id="phone" name="phone" required>
+        </div>
+      </div>
+
+      <!-- Row 3: Email (full width) -->
+      <div class="input-group full-width">
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+
+      <!-- Row 4: Password & Confirm Password -->
+      <div class="form-row">
+        <div class="input-group">
+          <label for="password">Password:</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <div class="input-group">
+          <label for="password_confirm">Confirm Password:</label>
+          <input type="password" id="password_confirm" name="password_confirm" required>
+        </div>
+      </div>
+
+      <button type="submit">Register</button>
+    </form>  
+    
+    <p class="login-link">Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+  </div>
 </body>
 </html>
-
-

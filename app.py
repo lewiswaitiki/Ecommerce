@@ -2,7 +2,6 @@ from flask import Flask, request, redirect , flash ,session,url_for , render_tem
 import db
 import logging
 from db import get_connection , create_product_table,get_cursor , insert_sample_products,get_all_products,get_product_by_id
-
 logging.basicConfig(level=logging.INFO)
 
 
@@ -14,7 +13,44 @@ app.secret_key = 'key'
 
 
 
-@app.route('/home')
+
+@app.route('/login',methods=['GET', 'POST'])
+def login():
+  
+  if request.method =='POST':
+    username = request.form.get('username', '')
+    password = request.form['password']
+    
+    login = db.verify_user_login(username,password)
+    print(login,'login result')
+    
+    if 'success' in login:
+      return redirect(url_for('home'))
+    
+    else:
+      flash("Invalid username or password", "error")
+      return render_template('login.html')
+  
+  return render_template('login.html')
+  
+  
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+  if request.method =='POST':
+    first_name = request.form.get('firstname', '')
+    secondname = request.form.get('secondname', '')
+    username = request.form.get('username', '')
+    phone = request.form.get('phone', '')
+    email = request.form.get('email', '')
+    password = request.form.get('password', '')
+    password_confirm = request.form.get('password_confirm', '')
+    print(first_name,secondname,username,phone,email,password,password_confirm)
+    db.register_details(first_name,secondname,username,phone,email,password,password_confirm)
+  return render_template('register.html')
+
+@app.route('/home', methods=['GET', 'POST'])
 def home():
   # db.create_user_table()
   # db.create_product_table()

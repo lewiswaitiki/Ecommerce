@@ -1,5 +1,6 @@
 import psycopg2
 import logging
+import bcrypt
 
 Logger = logging.getLogger(__name__)
 
@@ -42,8 +43,11 @@ def create_user_table():
     if cursor:
       try:
         create_table_query = '''CREATE TABlE IF NOT EXISTS users(id SERIAL PRIMARY KEY,
+                          firstname VARCHAR(50) NOT NULL,
+                          lastname VARCHAR(50) NOT NULL,
                           username VARCHAR(50) UNIQUE NOT NULL,
                           email VARCHAR(100) UNIQUE NOT NULL,
+                          phone VARCHAR(15),
                           password_hash VARCHAR(128) NOT NULL); '''
                           
         cursor.execute(create_table_query) 
@@ -173,7 +177,7 @@ def get_product_by_id(product_id):
     return psycopg2.extensions.PYCHARS(password)
   
   
- 
+
 # return all categories  
 def get_all_categories():
   
@@ -289,3 +293,107 @@ def get_product_by_category(category):
     
 # products_by_category = get_product_by_category('food')
 # print(f"products by category {products_by_category}")
+
+
+
+
+
+# hash passwords
+def hash_paswrd(password):
+  password = password.encode('utf-8')
+  hashed = bcrypt.hashpw(password,bcrypt.gensalt())
+  hashed_password = hashed
+  return hashed_password
+  
+  
+
+
+# password,hashed_password = hash_paswrd('password')
+
+
+# print(f'encoded password {password}, {hashed_password}')
+
+
+
+
+def check_password(password,hashed):
+  password = password.encode('utf-8')
+  print(type(hashed))
+  hashed = hashed.encode('utf-8')
+  value = bcrypt.checkpw(password,hashed)
+  return value
+
+
+
+# verify user for login
+def verify_user_login(username,password):
+  conn = get_connection()
+  cusror = get_cursor(conn)
+  
+  try:
+    query = '''SELECT password_hash, username FROM users  where username = %s'''
+    
+    cusror.execute(query,(username,))
+    row = cusror.fetchone()
+    if row is None:
+      return {'Failed': 'invalid username or password'}
+    password_hash,username  = row
+    print(type(username))
+    print('password hash')
+    print(type(password_hash))
+    print(username)
+    print(f'password_hash:{password_hash}')
+    print(f'password {password}')
+    # if password == password_hash:
+    #   return {
+    #     'success':'verification successfull',
+    #   }
+    # else:
+    #   return {
+    #     'Failed':'invalid username or password'
+    #   }
+    
+    status = check_password(password,password_hash)
+    if status ==True:
+      return {
+        'success':'verification successfull',
+      }
+    else:
+      return {
+        'Failed':'invalid username or password'
+      }
+      
+  except Exception as ex:
+        print(f' verify user login error {ex}')
+      
+  finally:
+    cusror.close()
+    conn.close()
+
+
+# signup helper
+def register_details(*args):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  print('function called')
+  print(f'args received {args}')
+  password = args[5]
+  print(password)
+  password = hash_paswrd(password).decode('utf-8')
+  print(password)
+  
+  try:
+    query = '''INSERT into USERS (firstname,lastname,username,email,phone,password_hash) VALUES (%s,%s,%s,%s,%s,%s)'''
+    cursor.execute(query,(args[0],args[0],args[0],args[0],args[0],password))
+    conn.commit()
+    print('user registered successfully')
+  except Exception as e:
+    print(f'error registering details {e}')
+  finally:
+    cursor.close()
+    conn.close()
+  
+  
+  
+# status = verify_user_login('kiki','password')
+# print(status)
