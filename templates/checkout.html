@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unity Store - Checkout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/checkout.css') }}">
+    <link rel="stylesheet" href="../static/css/checkout.css">
+    </head>
+    <body>
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+        <h1>Unity Store</h1>
+        <nav>
+            <ul>
+            <li><a href="{{ url_for('home') }}"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="{{ url_for('view_cart') }}"><i class="fas fa-shopping-cart"></i> Cart 
+                <span class="cart-count">{{ item_count }}</span></a></li>
+            <li><a href="{{ url_for('orders') }}"><i class="fas fa-shopping-bag"></i> Orders</a></li>
+            </ul>
+        </nav>
+        </div>
+    </header>
+
+    <!-- Checkout Container -->
+    <main class="checkout-container">
+        <!-- Left Column: Order Summary -->
+        <section class="order-summary">
+        <h2>Order Summary</h2>
+        <ul class="order-items">
+            {% for item in cart_items %}
+            <li>
+            <span>{{ item[0] }} × {{ item[3] }}</span>
+            <span>Ksh {{ item[1] * item[3] }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        <hr>
+        <p class="order-total"><strong>Total: Ksh {{ total }}</strong></p>
+        </section>
+
+        <!-- Right Column: Payment Options -->
+        <section class="payment-options">
+        <h2>Payment Method</h2>
+        <div class="payment-buttons">
+            <button class="btn btn-primary" id="pay-mpesa">
+            <i class="fas fa-mobile-alt"></i> Pay with M‑Pesa
+            </button>
+            <button class="btn btn-secondary" id="pay-stripe">
+            <i class="fas fa-credit-card"></i> Pay with Stripe
+            </button>
+        </div>
+        <p class="secure-note">
+            <i class="fas fa-lock"></i> Secure payments powered by M‑Pesa and Stripe.
+        </p>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+        <p>&copy; 2025 Unity Store. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Checkout JS -->
+    <script>
+        document.getElementById('pay-mpesa').addEventListener('click', () => {
+        fetch('/pay/mpesa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: {{ order_id }}, amount: {{ total }} })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert("M‑Pesa payment initiated. Check your phone.");
+        });
+        });
+
+        document.getElementById('pay-stripe').addEventListener('click', () => {
+        fetch('/pay/stripe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: {{ order_id }}, amount: {{ total }} })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert("Stripe payment intent created. Redirecting to card entry...");
+        });
+        });
+    </script>
+</body>
+</html>

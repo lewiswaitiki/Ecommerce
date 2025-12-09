@@ -1,7 +1,7 @@
-from flask import Flask, request, redirect , flash ,session,url_for , render_template
+from flask import Flask, request, redirect , flash ,session,url_for , render_template,session,jsonify
 import db
 import logging
-from db import get_connection , create_product_table,get_cursor , insert_sample_products,get_all_products,get_product_by_id
+from db import get_connection , create_product_table,get_cursor , insert_sample_products,get_all_products,get_product_by_id,update_cart_helper,delete_from_cart,get_cart_item_count,fetch_cart,create_order
 logging.basicConfig(level=logging.INFO)
 
 
@@ -21,10 +21,12 @@ def login():
     username = request.form.get('username', '')
     password = request.form['password']
     
-    login = db.verify_user_login(username,password)
-    print(login,'login result')
-    
-    if 'success' in login:
+    result = db.verify_user_login(username,password)
+    print(result)    
+    if result and 'success' in result:
+      session['user_id'] = result.get('id')
+      print(session)
+      print(f'id{result.get("id")}')
       return redirect(url_for('home'))
     
     else:
@@ -40,14 +42,14 @@ def login():
 def signup():
   if request.method =='POST':
     first_name = request.form.get('firstname', '')
-    secondname = request.form.get('secondname', '')
+    lastname = request.form.get('secondname', '')
     username = request.form.get('username', '')
     phone = request.form.get('phone', '')
     email = request.form.get('email', '')
     password = request.form.get('password', '')
     password_confirm = request.form.get('password_confirm', '')
-    print(first_name,secondname,username,phone,email,password,password_confirm)
-    db.register_details(first_name,secondname,username,phone,email,password,password_confirm)
+    print(first_name,lastname,username,phone,email,password,password_confirm)
+    db.register_details(first_name,lastname,username,phone,email,password,password_confirm)
   return render_template('register.html')
 
 @app.route('/home', methods=['GET', 'POST'])
@@ -79,6 +81,10 @@ def home():
     # Get unique categories for filter sidebar
     categories = db.get_all_categories()
     
+    if 'user_id' in session:
+      user_id = session['user_id']
+      cart_count = get_cart_item_count(user_id)
+      
     
     return render_template('home.html' , 
                           products=products,
@@ -89,7 +95,8 @@ def home():
                           max_price=max_price,
                           rating_filter=rating_filter,
                           in_stock_only=in_stock_only,
-                          sort_by=sort_by
+                          sort_by=sort_by,
+                          cart_count =cart_count
                           )
 
   
@@ -159,6 +166,98 @@ def add_product():
     flash("Product added successfully!", "success")
     return redirect(url_for('home'))
   return render_template('add_product.html')
+
+
+
+# add to cart
+@app.route('/add_to_cart', methods=['POST'])
+def add_to_cart():
+  if 'user_id' not in session:
+    flash('please log in to add items to your cart','error')
+    return jsonify({'success':False,"message":"please log in"})
+  
+  data = request.get_json()
+  product_id = data.get('product_id')
+  user_id = session['user_id']
+  quantity = int(data.get('quantity',1))
+  print(f'data{data},product_id{product_id},user_id{user_id},quantity{quantity}')
+  result = db.add_to_cart(user_id,product_id,quantity)
+  
+  return jsonify(result)
+
+@app.route('/cart')
+def view_cart():
+  if 'user_id' not in session:
+    return redirect(url_for('login'))
+  
+  user_id = session.get('user_id')
+  cart_items, total,item_count =  db.fetch_cart(user_id)
+  print(f"cart_items: {cart_items}, total: {total}")
+  print(cart_items)
+  return render_template('cart.html',cart_items=cart_items, total=total,item_count=item_count)  
+
+
+@app.route('/update_cart',methods=['POST'])
+def update_cart():
+  if 'user_id' not in session:
+    return jsonify({'success':False}),401
+  
+  data = request.get_json()
+  user_id = session['user_id']
+  product_id = data['product_id']
+  quantity = data['quantity']
+  
+  result = update_cart_helper(quantity,user_id,product_id)
+  
+  return jsonify(result)
+
+
+@app.route('/remove_from_cart', methods=['POST'])
+def remove_from_cart():
+    if 'user_id' not in session:
+        return jsonify({"success": False}), 401
+    data = request.get_json()
+    print(f"data: {data}")
+    user_id = session['user_id']
+    product_id = data['product_id']
+    result = delete_from_cart(user_id,product_id)
+    return jsonify(result)
+  
+
+@app.route('/checkout', methods=['POST','GET'])
+def checkout():
+    if request.method == 'GET':
+      return render_template('checkout.html')
+    
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    cart_items, total,item_count = fetch_cart(user_id)
+
+    if not cart_items:
+        return jsonify({"success": False, "message": "Cart is Empty"})
+
+    result = create_order(user_id, total, cart_items)
+
+    if result["success"]:
+        return render_template(
+            'checkout.html',
+            order_id=result["order_id"],
+            total=result["total"],
+            cart_items=cart_items
+        )
+    else:
+        return jsonify(result)
+
+
+@app.route('/orders')
+def orders():
+    # fetch user orders from DB
+    return 'orders'
+
+
+
 
 # @app.route('/register', methods = ['GET','POST'])
 # def register():
@@ -233,12 +332,7 @@ def add_product():
 
 
 
-# @app.route('/cart')
-# def view_cart():
-#   if 'cart' not in session or len(session['cart'])==0:
-#     print("cart is empty")
-#     flash('Your cart is empty!')
-#     return redirect(url_for('home'))
+
   
 #   cart_products = []
 #   product_ids = session['cart']

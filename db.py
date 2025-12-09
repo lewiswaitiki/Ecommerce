@@ -331,19 +331,19 @@ def verify_user_login(username,password):
   cusror = get_cursor(conn)
   
   try:
-    query = '''SELECT password_hash, username FROM users  where username = %s'''
+    query = '''SELECT password_hash,id FROM users  where username = %s'''
     
     cusror.execute(query,(username,))
     row = cusror.fetchone()
     if row is None:
       return {'Failed': 'invalid username or password'}
-    password_hash,username  = row
-    print(type(username))
-    print('password hash')
-    print(type(password_hash))
-    print(username)
-    print(f'password_hash:{password_hash}')
-    print(f'password {password}')
+    password_hash,id  = row
+    # print(type(username))
+    # print('password hash')
+    # print(type(password_hash))
+    # print(username)
+    # print(f'password_hash:{password_hash}')
+    # print(f'password {password}')
     # if password == password_hash:
     #   return {
     #     'success':'verification successfull',
@@ -357,6 +357,7 @@ def verify_user_login(username,password):
     if status ==True:
       return {
         'success':'verification successfull',
+        'id':id
       }
     else:
       return {
@@ -383,8 +384,8 @@ def register_details(*args):
   print(password)
   
   try:
-    query = '''INSERT into USERS (firstname,lastname,username,email,phone,password_hash) VALUES (%s,%s,%s,%s,%s,%s)'''
-    cursor.execute(query,(args[0],args[0],args[0],args[0],args[0],password))
+    query = '''INSERT into USERS (firstname,lastname,username,phone,email,password_hash) VALUES (%s,%s,%s,%s,%s,%s)'''
+    cursor.execute(query,(args[0],args[1],args[2],args[3],args[4],password))
     conn.commit()
     print('user registered successfully')
   except Exception as e:
@@ -397,3 +398,205 @@ def register_details(*args):
   
 # status = verify_user_login('kiki','password')
 # print(status)
+
+
+
+# retrieve cart details
+def fetch_cart(user_id):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  
+  try:
+    query = '''SELECT p.name, p.price ,p.image_url, c.quantity, p.id FROM cart_items c JOIN products p ON c.product_id = p.id WHERE c.user_id = %s'''
+    cursor.execute(query,(user_id,))
+    cart_items = cursor.fetchall()
+    print (f'cart items {cart_items}')
+    total = sum([row[1] * row[3] for row in cart_items])
+    item_count = get_cart_item_count(user_id)
+    return cart_items,total,item_count
+  
+  except Exception as e:
+    print(f'Error {e}')
+    
+  finally:
+    cursor.close()
+    conn.close()
+    
+
+
+# add to cart 
+def add_to_cart(user_id,product_id,quantity):
+  conn =get_connection()
+  cursor = get_cursor(conn)
+  
+  try:
+    query =(
+      '''SELECT id, quantity FROM cart_items WHERE user_id=%s AND product_id =%s'''
+    )
+    
+    cursor.execute(query,(user_id,product_id))
+    row = cursor.fetchone()
+    
+    if row:
+      new_quantity = row[1] + quantity
+      query = '''UPDATE cart_items SET  quantity =%s WHERE id =%s'''
+      cursor.execute(query,(new_quantity,row[0]))
+    
+    else:
+      
+      query = '''INSERT INTO cart_items(user_id,product_id,quantity)VALUES(%s,%s,%s)''' 
+      cursor.execute(query,(user_id,product_id,quantity))
+    
+    conn.commit()
+    # get updated cart count
+    cursor.execute("SELECT COALESCE(SUM(quantity),0) FROM cart_items WHERE user_id=%s", (user_id,))
+    cart_count = cursor.fetchone()[0]
+    
+    return {"success": True, "message": "Item added to cart", "cart_count": cart_count}
+      
+  except Exception as e:
+    print("Error",e)
+    return ({"success":False,"message": "Error adding to cart"})
+  
+  
+  finally:
+      cursor.close()
+      conn.close()
+      
+      
+# update cart
+def update_cart_helper(quantity,user_id,product_id):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  
+  try:
+    query='''UPDATE cart_items SET quantity=%s WHERE user_id=%s AND product_id=%s'''
+    cursor.execute(query,(quantity, user_id, product_id))
+    conn.commit()
+    
+    # get updated individual product count and total 
+    query = '''SELECT COALESCE(SUM(quantity),0) FROM cart_items WHERE user_id=%s AND product_id=%s'''
+    cursor.execute(query, (user_id, product_id))
+    product_count = cursor.fetchone()[0]
+    
+    query = '''SELECT COALESCE(SUM(p.price * c.quantity),0) FROM cart_items c JOIN products p ON c.product_id=p.id WHERE c.user_id=%s AND c.product_id=%s'''
+    cursor.execute(query, (user_id, product_id))
+    product_total = cursor.fetchone()[0]
+    
+    # get updated individual product count and total
+    query = '''SELECT COALESCE(SUM(quantity),0) FROM cart_items WHERE user_id=%s'''
+    cursor.execute(query, (user_id,))
+    cart_count = cursor.fetchone()[0]
+    
+    query = '''SELECT COALESCE(SUM(p.price * c.quantity),0) FROM cart_items c JOIN products p ON c.product_id=p.id WHERE c.user_id=%s'''
+    cursor.execute(query, (user_id,))
+    total = cursor.fetchone()[0]
+
+    return {"success": True, "message": "Item count updated", "cart_count": cart_count, "total": float(total), "product_count": product_count, "product_total": float(product_total)}
+    
+  except Exception as e:
+    print(f'error updating cart {e}')
+    return {"success": False, "message": "Error updating cart"}
+  finally:
+    cursor.close()
+    conn.close()
+    
+    
+# delete item from cart
+def delete_from_cart(user_id,product_id):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+
+  try:
+    query = '''DELETE FROM cart_items WHERE user_id=%s AND product_id=%s'''
+    cursor.execute(query,(user_id, product_id))
+    conn.commit()
+    # get updated cart count and total
+    cursor.execute("SELECT COALESCE(SUM(quantity),0) FROM cart_items WHERE user_id=%s", (user_id,))
+    cart_count = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COALESCE(SUM(p.price * c.quantity),0) FROM cart_items c JOIN products p ON c.product_id=p.id WHERE c.user_id=%s", (user_id,))
+    total = cursor.fetchone()[0]
+
+    return {"success": True, "cart_count": cart_count, "total": float(total)}
+  
+  except Exception as e:
+    print(f'error deleting cart item {e}')
+    return {"success": False, "message": "Error deleting cart item"}
+    
+  finally:
+    cursor.close()
+    conn.close()
+    
+    
+# cart total
+def get_cart_total(user_id):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  
+  try:
+    query = '''SELECT COALESCE(SUM(p.price * c.quantity),0) FROM cart_items c JOIN products p ON c.product_id=p.id WHERE c.user_id=%s'''
+    cursor.execute(query,(user_id,))
+    total = cursor.fetchone()[0]
+    return float(total)
+    
+  except Exception as e:
+    print(f'error getting cart total {e}')
+    return 0.0
+  finally:
+    cursor.close()
+    conn.close()
+    
+
+# get total items in cart
+def get_cart_item_count(user_id):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  
+  try:
+    query = '''SELECT COALESCE(SUM(quantity),0) FROM cart_items WHERE user_id=%s'''
+    cursor.execute(query,(user_id,))
+    count = cursor.fetchone()[0]
+    return count
+  except Exception as e:
+    print(f'error getting cart item count {e}')
+    return 0
+  finally:
+    cursor.close()
+    conn.close()
+    
+    
+
+# crete order
+def create_order(user_id, total, cart_items):
+    conn = get_connection()
+    cursor = get_cursor(conn)
+    try:
+        # Insert order and get its ID
+        cursor.execute(
+            '''INSERT INTO orders (user_id, total) VALUES (%s, %s) RETURNING id''',
+            (user_id, total)
+        )
+        order_id = cursor.fetchone()[0]
+
+        # Insert all items into order_items
+        for item in cart_items:
+            cursor.execute(
+                '''INSERT INTO order_items (order_id, product_id, quantity, price)
+                    VALUES (%s, %s, %s, %s)''',
+                (order_id, item[4], item[3], item[1])
+            )
+
+        # Clear cart once after inserting all items
+        cursor.execute("DELETE FROM cart_items WHERE user_id=%s", (user_id,))
+        conn.commit()
+
+        return {"success": True, "order_id": order_id, "total": float(total)}
+
+    except Exception as e:
+        print("Checkout error:", e)
+        return {"success": False, "message": "Checkout failed"}
+
+    finally:
+        cursor.close()
+        conn.close()

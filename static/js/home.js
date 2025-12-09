@@ -7,6 +7,7 @@ function clearFilters(){
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dom loaded products page')
+    add_to_cart_btn = document.querySelector('.add-to-cart')
     // Auto-submit search when user stops typing
     let searchTimeout;
     document.getElementById('search-input').addEventListener('input',function(){
@@ -37,5 +38,11 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("applying filters")
         document.getElementById('filter-form').submit();
     });
+
+
+    // add to cart logic
+    add_to_cart_btn.addEventListener('click',function(){
+        console.log('add cart button clicked')
+    })
 
 });
