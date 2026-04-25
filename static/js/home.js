@@ -7,6 +7,8 @@ function clearFilters(){
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dom loaded products page')
+    const btn = document.getElementById("profileBtn");
+    const dropdown = document.getElementById("profileDropdown");
     add_to_cart_btn = document.querySelector('.add-to-cart')
     // Auto-submit search when user stops typing
     let searchTimeout;
@@ -44,5 +46,14 @@ document.addEventListener('DOMContentLoaded', function() {
     add_to_cart_btn.addEventListener('click',function(){
         console.log('add cart button clicked')
     })
+
+    btn.addEventListener("click", () => {
+        dropdown.classList.toggle("hidden");
+    });
+    document.addEventListener("click", (e) => {
+        if (!btn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add("hidden");
+        }
+    });
 
 });

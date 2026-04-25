@@ -62,21 +62,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // checkout button click
     if (checkoutBtn){
-        checkoutBtn.addEventListener('click',()=>{
-            fetch('/checkout',{
-                method:'POST',
-                headers:{'Content-Type':'application/json'}
-            })
-            .then(res=>res.text())//backend return HTML template
-            .then(html =>{
-                document.open();
-                document.write(html);
-                document.close();
-            })
-            .catch(err=>{
-                console.error("Checkout error:",err)
-                alert("Could not process checkout");
-            });
-        });
+        checkoutBtn.addEventListener('click', () => {
+            window.location.href = '/checkout';
+        }
+    );
     }
 });

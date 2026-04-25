@@ -39,24 +39,58 @@
         </ul>
         <hr>
         <p class="order-total"><strong>Total: Ksh {{ total }}</strong></p>
+        <input type="hidden" id="total-amount" value="{{ total }}">
         </section>
 
         <!-- Right Column: Payment Options -->
         <section class="payment-options">
-        <h2>Payment Method</h2>
-        <div class="payment-buttons">
-            <button class="btn btn-primary" id="pay-mpesa">
-            <i class="fas fa-mobile-alt"></i> Pay with M‑Pesa
-            </button>
-            <button class="btn btn-secondary" id="pay-stripe">
-            <i class="fas fa-credit-card"></i> Pay with Stripe
-            </button>
-        </div>
-        <p class="secure-note">
-            <i class="fas fa-lock"></i> Secure payments powered by M‑Pesa and Stripe.
-        </p>
+            <h2>Payment Method</h2>
+
+            <!-- Step 1: Choose payment method -->
+            <div class="payment-buttons">
+                <button class="btn btn-primary pay-option" data-method="mpesa">
+                <i class="fas fa-mobile-alt"></i> Pay with M‑Pesa
+                </button>
+                <button class="btn btn-secondary pay-option" data-method="stripe">
+                <i class="fas fa-credit-card"></i> Pay with Stripe
+                </button>
+            </div>
+
+            <!-- Step 2: M‑Pesa form -->
+            <form id="mpesa-form" class="payment-form hidden" method="POST" action="/pay/mpesa">
+                <label for="phone">Phone Number:</label>
+                <input type="text" id="phone" name="phone_number" placeholder="2547XXXXXXXX" required>
+                <button type="submit" class="mpesa-btn">Confirm M‑Pesa Payment</button>
+            </form>
+
+            <!-- Step 2: Stripe form -->
+            <form id="stripe-form" class="payment-form hidden" method="POST" action="/pay/stripe">
+                <label for="card">Card Number:</label>
+                <input type="text" id="card" name="card_number" placeholder="1234 5678 9012 3456" required>
+                <button type="submit" class="stripe-btn">Confirm Card Payment</button>
+            </form>
+
+            <!-- Step 3: Feedback -->
+            <p class="secure-note">
+                <i class="fas fa-lock"></i> Secure payments powered by M‑Pesa and Stripe.
+            </p>
+            <div id="payment-message"></div>
         </section>
+
     </main>
+
+    <!---->
+    <!-- Payment Modal -->
+    <div class="modal" id="payment-modal" role="dialog" aria-modal="true" aria-labelledby="payment-status" hidden>
+        <div class="modal-backdrop" data-close-modal></div>
+        <div class="modal-dialog" role="document">
+            <button class="modal-close" aria-label="Close" data-close-modal>✕</button>
+            <h2 id="payment-status">Payment Status</h2>
+            <p id="payment-message-modal"></p>
+        </div>
+    </div>
+
+
 
     <!-- Footer -->
     <footer>
@@ -66,30 +100,6 @@
     </footer>
 
     <!-- Checkout JS -->
-    <script>
-        document.getElementById('pay-mpesa').addEventListener('click', () => {
-        fetch('/pay/mpesa', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order_id: {{ order_id }}, amount: {{ total }} })
-        })
-        .then(res => res.json())
-        .then(data => {
-            alert("M‑Pesa payment initiated. Check your phone.");
-        });
-        });
-
-        document.getElementById('pay-stripe').addEventListener('click', () => {
-        fetch('/pay/stripe', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order_id: {{ order_id }}, amount: {{ total }} })
-        })
-        .then(res => res.json())
-        .then(data => {
-            alert("Stripe payment intent created. Redirecting to card entry...");
-        });
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/checkout.js') }}"></script>
 </body>
 </html>

@@ -425,7 +425,7 @@ def fetch_cart(user_id):
 
 
 # add to cart 
-def add_to_cart(user_id,product_id,quantity):
+def add_item_to_cart(user_id,product_id,quantity):
   conn =get_connection()
   cursor = get_cursor(conn)
   
@@ -557,7 +557,8 @@ def get_cart_item_count(user_id):
     query = '''SELECT COALESCE(SUM(quantity),0) FROM cart_items WHERE user_id=%s'''
     cursor.execute(query,(user_id,))
     count = cursor.fetchone()[0]
-    return count
+    print(f'count {count}')
+    return count if count is not None else 0
   except Exception as e:
     print(f'error getting cart item count {e}')
     return 0
@@ -588,7 +589,7 @@ def create_order(user_id, total, cart_items):
             )
 
         # Clear cart once after inserting all items
-        cursor.execute("DELETE FROM cart_items WHERE user_id=%s", (user_id,))
+        # cursor.execute("DELETE FROM cart_items WHERE user_id=%s", (user_id,))
         conn.commit()
 
         return {"success": True, "order_id": order_id, "total": float(total)}
@@ -600,3 +601,269 @@ def create_order(user_id, total, cart_items):
     finally:
         cursor.close()
         conn.close()
+
+
+
+# get order and order items
+# Update get_order_details to accept order_id
+def get_order_details(order_id, user_id):
+    conn = get_connection()
+    cursor = get_cursor(conn)
+    try:
+        # Fetch specific order
+        cursor.execute(
+            '''SELECT id, total, created_at FROM orders 
+                WHERE id=%s AND user_id=%s''', 
+            (order_id, user_id)
+        )
+        order = cursor.fetchone()
+        
+        if not order:
+            return {"success": False, "message": "Order not found"}
+        
+        order_details = {
+            'order_id': order[0],
+            'total': float(order[1]),
+            'created_at': order[2],
+            'items': []
+        }
+        
+        # Fetch order items with product details
+        cursor.execute('''
+            SELECT oi.product_id, p.name, p.image, oi.quantity, oi.price
+            FROM order_items oi
+            JOIN products p ON oi.product_id = p.id
+            WHERE oi.order_id=%s
+        ''', (order_id,))
+        
+        items = cursor.fetchall()
+        for item in items:
+            order_details['items'].append({
+                'product_id': item[0],
+                'name': item[1],
+                'image': item[2],
+                'quantity': item[3],
+                'price': float(item[4]),
+                'item_total': float(item[4] * item[3])
+            })
+        
+        return {"success": True, "order_details": order_details}
+        
+    except Exception as e:
+        print(f'Error fetching order details: {e}')
+        return {"success": False, "message": str(e)}
+    finally:
+        cursor.close()
+        conn.close()
+        
+        
+# get user info by id
+def get_user_by_id(user_id):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  
+  try:
+    query = '''SELECT id, firstname, lastname, username, email, phone FROM users WHERE id=%s'''
+    cursor.execute(query,(user_id,))
+    row = cursor.fetchone()
+    if row:
+      return {
+        'id':row[0],
+        'firstname':row[1],
+        'lastname':row[2],
+        'username':row[3],
+        'email':row[4],
+        'phone':row[5]
+      }
+    else:
+      return None
+  except Exception as e:
+    print(f'error getting user by id {e}')
+    return None
+  finally:
+    cursor.close()
+    conn.close()
+    
+
+
+
+
+# payments update logic
+# def save_payments(order_id, user_id, provider, amount, receipt_number, phone, status, result_code, result_desc, transaction_date):
+#   conn = get_connection()
+#   cursor = get_cursor(conn)
+#   try:
+#     query = '''
+#     INSERT INTO payments (order_id, user_id, provider, amount, receipt_number, phone, status, result_code, result_desc, transaction_date)
+#     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, to_timestamp(%s, 'YYYYMMDDHH24MISS'))
+#     );'''
+#     cursor.execute(query, (order_id, user_id, provider, amount, receipt_number, phone, status, result_code, result_desc, transaction_date))
+#     conn.commit()
+#     print("Payments  created successfully")
+#   except Exception as e:
+#     print(f'Error creating payments  {e}')
+#   finally:
+#     cursor.close()
+#     conn.close()
+    
+    
+    
+def save_payments(order_id, user_id, provider, amount, receipt_number, phone,
+                  status, result_code, result_desc, transaction_date):
+    print('method called')
+    conn = get_connection()
+    cursor = get_cursor(conn)
+    try:
+        if transaction_date:
+            query = '''
+            INSERT INTO payments (
+                order_id, user_id, provider, amount, receipt_number, phone,
+                status, result_code, result_desc, transaction_date
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    to_timestamp(%s, 'YYYYMMDDHH24MISS'))
+            '''
+            cursor.execute(query, (
+                order_id, user_id, provider, amount, receipt_number, phone,
+                status, result_code, result_desc, str(transaction_date)
+            ))
+        else:
+            query = '''
+            INSERT INTO payments (
+                order_id, user_id, provider, amount, receipt_number, phone,
+                status, result_code, result_desc
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            '''
+            cursor.execute(query, (
+                order_id, user_id, provider, amount, receipt_number, phone,
+                status, result_code, result_desc
+            ))
+        conn.commit()
+        print("Payment created successfully")
+    except Exception as e:
+        print(f'Error creating payment: {e}')
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+
+# payments mapping
+def mpesa_payment_mapping(order_id,checkout_id):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  try:
+    query ="INSERT INTO checkout_map (order_id, checkout_id) VALUES (%s, %s)"
+    cursor.execute(query,(order_id,checkout_id))
+    conn.commit()
+  except Exception as e:
+    pass
+  finally:
+    cursor.close()
+    conn.close()
+    
+
+
+# Find order_id from checkout_map
+def find_order_id_from_checkout_map(checkout_id):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  try:
+    cursor.execute("SELECT order_id FROM checkout_map WHERE checkout_id=%s", (checkout_id,))
+    row = cursor.fetchone()
+    if not row:
+      return "Unknown checkout ID", 400
+    else:
+      order_id = row[0]
+      return order_id
+  except Exception as e:
+    print(f'Error finding order ID from checkout map: {e}')
+    return None
+  finally:
+    cursor.close()
+    conn.close()
+    
+    
+# get user by order id
+def get_user_by_order_id(order_id):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  try:
+    cursor.execute("SELECT user_id FROM orders WHERE id=%s", (order_id,))
+    row = cursor.fetchone()
+    if not row:
+      return "Unknown order ID", 400
+    else:
+      user_id = row[0]
+      return user_id
+  except Exception as e:
+    print(f'Error finding user ID from order: {e}')
+    return None
+  finally:
+    cursor.close()
+    conn.close()
+
+
+
+def get_payment_by_order_id(order_id):
+  conn = get_connection()
+  cursor = get_cursor(conn)
+  try:
+    query = '''SELECT id, order_id, user_id, provider, amount, receipt_number, phone, status, result_code, result_desc, transaction_date
+               FROM payments WHERE order_id=%s'''
+    cursor.execute(query,(order_id,))
+    payment = cursor.fetchone()
+    if not payment:
+      return None
+    return {
+      'id':payment[0],
+      'order_id':payment[1],
+      'user_id':payment[2],
+      'provider':payment[3],
+      'amount':float(payment[4]),
+      'receipt_number':payment[5],
+      'phone':payment[6],
+      'status':payment[7],
+      'result_code':payment[8],
+      'result_desc':payment[9],
+      'transaction_date':payment[10]
+    }
+  except Exception as e:
+    print(f'Error getting payment by order ID: {e}')
+    return None
+  finally:
+    cursor.close()
+    conn.close()  
+    
+    
+def fetch_all_users():
+  conn = get_connection()
+  cursor = get_cursor(conn)
+
+  try:
+    query = '''SELECT * FROM users'''
+    cursor.execute(query)
+    users = cursor.fetchall()
+    return users
+  except Exception as e:
+    print(f'Error fetching users {e}')
+    
+    
+def  fetch_admin_order_stats():
+  try:
+    conn = get_connection()  # however you get your DB connection
+    cur = conn.cursor()
+
+    cur.execute("SELECT COUNT(*) FROM orders")
+    total_orders = cur.fetchone()[0]
+    logging.info(f"total orders:{total_orders}")
+    return total_orders
+  except Exception as e:
+    logging.info(f"Failed to load order stats {e}")
+    
+  finally:
+    cur.close()
+    conn.close()
+    

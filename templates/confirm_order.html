@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation - Unity Store</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/confirm_order.css') }}">
+    <link rel="stylesheet" href="../static/css/confirm_order.css">
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <h1>Unity Store</h1>
+            <nav>
+                <ul>
+                    <li><a href="{{url_for('home')}}"><i class="fas fa-home"></i> Home</a></li>
+                    <li><a href="{{ url_for('orders') if 'orders' in url_map else '#' }}"><i class="fas fa-shopping-bag"></i> Orders</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="cart-container">
+        <div class="status">
+            <i class="fa-solid fa-cart-shopping">Cart</i>
+            <i class="fa-regular fa-credit-card">Checkout</i>
+            <i class="fa-solid fa-list-check active">Order Confirmation</i>
+        </div>
+        
+        <div class="confirmation-content">
+            <div class="success-message">
+                <i class="fas fa-check-circle fa-4x"></i>
+                <h2>Order Confirmed!</h2>
+                <p>Thank you for your purchase.</p>
+                <p class="order-id">Order #{{ order_details.order_id }}</p>
+            </div>
+            
+            <div class="order-summary">
+                <h3>Order Summary</h3>
+                <div class="order-items">
+                    {% for item in order_details.items %}
+                    <div class="order-item">
+                        <img src="{{ url_for('static', filename='uploads/' + item.image) if item.image else url_for('static', filename='images/default.jpg') }}" 
+                            alt="{{ item.name }}">
+                        <div class="item-info">
+                            <h4>{{ item.name }}</h4>
+                            <p>Quantity: {{ item.quantity }}</p>
+                            <p>Price: Ksh {{ "%.2f"|format(item.price) }}</p>
+                        </div>
+                        <div class="item-total">
+                            Ksh {{ "%.2f"|format(item.item_total) }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="order-total">
+                    <p>Total: <strong>Ksh {{ "%.2f"|format(order_details.total) }}</strong></p>
+                    <p>Order Date: {{ order_details.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <a href="{{ url_for('home') }}" class="btn primary">
+                    <i class="fas fa-home"></i> Continue Shopping
+                </a>
+                <a href="{{ url_for('orders') if 'orders' in url_map else '#' }}" class="btn secondary">
+                    <i class="fas fa-shopping-bag"></i> View All Orders
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

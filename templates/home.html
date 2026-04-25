@@ -15,8 +15,8 @@
               <ul>
                   <li><a href="{{url_for('home')}}"><i class="fas fa-home"></i> Home</a></li>
                   <li><a href="{{url_for('view_cart')}}"><i class="fas fa-shopping-cart"></i> Cart <span class="cart-count">{{cart_count}}</span></a></li>
-                  <li><a href="orders.html"><i class="fas fa-shopping-bag"></i> Orders</a></li>
-                  <li><a href="checkout.html"><i class="fas fa-credit-card"></i> Checkout</a></li>       
+                  <li><a href="{{url_for('orders')}}"><i class="fas fa-shopping-bag"></i> Orders</a></li>
+                  <li><a href="{{url_for('checkout')}}"><i class="fas fa-credit-card"></i> Checkout</a></li>       
               </ul>
           </nav>
       </div>

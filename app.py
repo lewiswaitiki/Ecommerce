@@ -1,9 +1,14 @@
 from flask import Flask, request, redirect , flash ,session,url_for , render_template,session,jsonify
-import db
+import json
+from dotenv import load_dotenv
+import os
+# import db
 import logging
-from db import get_connection , create_product_table,get_cursor , insert_sample_products,get_all_products,get_product_by_id,update_cart_helper,delete_from_cart,get_cart_item_count,fetch_cart,create_order
+from db import fetch_all_users, get_connection , create_product_table,get_cursor, get_filtered_products, get_user_by_id, insert_product , insert_sample_products,get_all_products,get_product_by_id, save_payments,update_cart_helper,delete_from_cart,get_cart_item_count,fetch_cart,create_order,get_order_details,register_details,get_all_categories, verify_user_login,add_item_to_cart,mpesa_payment_mapping,find_order_id_from_checkout_map,get_user_by_order_id,get_payment_by_order_id,fetch_admin_order_stats
+from stk import initiate_stk_push
 logging.basicConfig(level=logging.INFO)
 
+load_dotenv('.env')
 
 #initialize the flask app
 app = Flask(__name__)
@@ -21,7 +26,7 @@ def login():
     username = request.form.get('username', '')
     password = request.form['password']
     
-    result = db.verify_user_login(username,password)
+    result =verify_user_login(username,password)
     print(result)    
     if result and 'success' in result:
       session['user_id'] = result.get('id')
@@ -36,6 +41,10 @@ def login():
   return render_template('login.html')
   
   
+@app.route('/logout')
+def logout():
+  session.pop('user_id',None)
+  return redirect(url_for('home'))
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -49,7 +58,7 @@ def signup():
     password = request.form.get('password', '')
     password_confirm = request.form.get('password_confirm', '')
     print(first_name,lastname,username,phone,email,password,password_confirm)
-    db.register_details(first_name,lastname,username,phone,email,password,password_confirm)
+    register_details(first_name,lastname,username,phone,email,password,password_confirm)
   return render_template('register.html')
 
 @app.route('/home', methods=['GET', 'POST'])
@@ -68,7 +77,7 @@ def home():
     sort_by = request.args.get('sort', 'featured')
     
     # get filtered products
-    products = db.get_filtered_products(
+    products = get_filtered_products(
       search_query =search_query,
       categories = category_filter,
       min_price = min_price,
@@ -79,14 +88,16 @@ def home():
     )
     
     # Get unique categories for filter sidebar
-    categories = db.get_all_categories()
-    
+    categories = get_all_categories()
+    cart_count = 0
+    username = ""
     if 'user_id' in session:
       user_id = session['user_id']
       cart_count = get_cart_item_count(user_id)
-      
+      print(f'cart_count: {cart_count}')
+      username =get_user_by_id(user_id)['username']
     
-    return render_template('home.html' , 
+    return render_template('home.html', 
                           products=products,
                           categories = categories,
                           search_query=search_query,
@@ -96,7 +107,8 @@ def home():
                           rating_filter=rating_filter,
                           in_stock_only=in_stock_only,
                           sort_by=sort_by,
-                          cart_count =cart_count
+                          cart_count =cart_count,
+                          username = username 
                           )
 
   
@@ -113,7 +125,7 @@ def products():
     sort_by = request.args.get('sort', 'featured')
     
     # get filtered products
-    products = db.get_filtered_products(
+    products = get_filtered_products(
       search_query =search_query,
       categories = category_filter,
       min_price = min_price,
@@ -124,7 +136,7 @@ def products():
     )
     
     # Get unique categories for filter sidebar
-    categories = db.get_all_categories()
+    categories = get_all_categories()
     
     
     return render_template('products.html' , 
@@ -142,11 +154,16 @@ def products():
 
 @app.route('/product/<int:product_id>')
 def product_detail(product_id):
-  product = db.get_product_by_id(product_id)
+  product = get_product_by_id(product_id)
   if product is None:
     flash(f"Product with ID {product_id} not found!", "error")
     return redirect(url_for('home'))
-  return render_template('product_detail.html', product=product)
+  cart_count = 0
+  if 'user_id' in session:
+      user_id = session['user_id']
+      cart_count = get_cart_item_count(user_id)
+      print(f'cart_count: {cart_count}')
+  return render_template('product_detail.html', product=product, cart_count=cart_count)
 
 
 # add product route
@@ -162,7 +179,7 @@ def add_product():
     category = request.form['category']
     description = request.form['description']
     
-    db.insert_product(product_name,description,price,quantity,image_url,category)
+    insert_product(product_name,description,price,quantity,image_url,category)
     flash("Product added successfully!", "success")
     return redirect(url_for('home'))
   return render_template('add_product.html')
@@ -181,7 +198,7 @@ def add_to_cart():
   user_id = session['user_id']
   quantity = int(data.get('quantity',1))
   print(f'data{data},product_id{product_id},user_id{user_id},quantity{quantity}')
-  result = db.add_to_cart(user_id,product_id,quantity)
+  result = add_item_to_cart(user_id,product_id,quantity)
   
   return jsonify(result)
 
@@ -191,7 +208,7 @@ def view_cart():
     return redirect(url_for('login'))
   
   user_id = session.get('user_id')
-  cart_items, total,item_count =  db.fetch_cart(user_id)
+  cart_items, total,item_count =  fetch_cart(user_id)
   print(f"cart_items: {cart_items}, total: {total}")
   print(cart_items)
   return render_template('cart.html',cart_items=cart_items, total=total,item_count=item_count)  
@@ -212,6 +229,14 @@ def update_cart():
   return jsonify(result)
 
 
+@app.route('/get_cart_item_count')
+def get_cart_items_count():
+    cart_count = 0
+    if 'user_id' in session:
+        user_id = session['user_id']
+        cart_count = get_cart_item_count(user_id)
+    return jsonify({'cart_count': cart_count})
+
 @app.route('/remove_from_cart', methods=['POST'])
 def remove_from_cart():
     if 'user_id' not in session:
@@ -224,140 +249,243 @@ def remove_from_cart():
     return jsonify(result)
   
 
-@app.route('/checkout', methods=['POST','GET'])
+@app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
-    if request.method == 'GET':
-      return render_template('checkout.html')
-    
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
     user_id = session['user_id']
-    cart_items, total,item_count = fetch_cart(user_id)
+    cart_items, total, item_count = fetch_cart(user_id)
 
     if not cart_items:
-        return jsonify({"success": False, "message": "Cart is Empty"})
+      return render_template('cart.html', message="Your cart is empty.")
 
-    result = create_order(user_id, total, cart_items)
-
-    if result["success"]:
-        return render_template(
-            'checkout.html',
-            order_id=result["order_id"],
-            total=result["total"],
-            cart_items=cart_items
-        )
-    else:
-        return jsonify(result)
+    # GET request: just show checkout page with current cart
+    return render_template('checkout.html', cart_items=cart_items, total=total, item_count=item_count)
 
 
 @app.route('/orders')
 def orders():
-    # fetch user orders from DB
-    return 'orders'
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    # fetch all orders for this user
+    conn = get_connection()
+    cursor = get_cursor(conn)
+    cursor.execute("SELECT id, total, created_at FROM orders WHERE user_id=%s", (user_id,))
+    orders_list = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template('orders.html', orders=orders_list)
 
 
+@app.route('/confirm_order', methods=['POST'])
 
 
-# @app.route('/register', methods = ['GET','POST'])
-# def register():
-#   if request.method == 'POST':
-#     username = request.form['username']
-#     email = request.form['email']
-#     password = request.form['password']
-#     user = {'username':username,
-#             'email':email,
-#             # 'password_hash':generate_password_hash(password)
-#             'password':password
-#             }
-#     conn = get_connection()
-#     cursor = get_cursor(conn)
-#     insert_user_query = '''INSERT INTO users (username,email,password_hash)
-#     VALUES(%s,%s,%s);'''
-#     cursor.execute(insert_user_query,(username,email,password))
-#     conn.commit()
-#     cursor.close()
-#     conn.close()
-#     flash('Registration successful!')
-#     return redirect(url_for('login'))
-  
-#   return render_template('register.html')
-
-# @app.route('/login', methods=['GET','POST'])
-# def login():
-#   if request.method == 'POST':
-#     username = request.form['username']
-#     password  = request.form['password']
+@app.route('/order/<int:order_id>')
+def order_confirmation(order_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     
-#     print(f"{username}\n{password}")
+    result = get_order_details(order_id, session['user_id'])
+    if result and result["success"]:
+        return render_template('confirm_order.html', 
+                            order_details=result['order_details'])
+    return redirect(url_for('home'))
+
+
+
+@app.route('/pay/mpesa', methods=['POST'])
+def pay_mpesa():
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Not logged in"})
+
+    user_id = session['user_id']
+
+    # ✅ Parse JSON safely
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"success": False, "message": "Invalid JSON payload"}), 400
+
+    phone_number = data.get('phone_number')
+    amount = data.get('amount')
+    amount = int(float(amount)) 
+    print(type(amount))
+    print(f'phone {phone_number}, amount {amount}')
+
+    # Fetch cart items
+    cart_items, total, item_count = fetch_cart(user_id)
+    if not cart_items:
+        return jsonify({"success": False, "message": "Cart is empty"})
+
     
-#     if not username or not password:
-#       flash('please enter both username and password')
-#       return redirect(url_for('login'))
     
-#     conn = db.get_connection()
-#     try:
-#       # cursor=conn.cursor()
-#       with conn.cursor() as cursor:
-#         select_user_query = '''SELECT id,password_hash FROM users WHERE username = %s AND password_hash = %s;'''
-#         cursor.execute(select_user_query,(username,password))
-#         user = cursor.fetchone()
-#         print("user")
-#         print(user)
-#       if user:
-#         flash('Login successful!')
-#         return redirect(url_for('home'))
-#       else:
-#           flash('invalid username or password')
-#     except Exception as e:
-#       flash(f'An error occurred.please try again later.{e}')
-#       app.logger.error(f"Login error: {e}")
-#     finally:
-#       conn.close()
-#   return render_template(('login.html'))
-
-
-# @app.route('/add_to_cart/<int:product_id>')
-# def add_to_cart(product_id):
-#   product =get_product_by_id(product_id)
-#   if product is None:
-#     flash(f"product with ID {product_id} not found!")
-#     return redirect(url_for('home'))
-#   if 'cart' not in session:
-#     session['cart']=[]
-#   session['cart'].append(product_id)
-#   flash('Product added to cart!')
-#   print('Added to cart')
-#   return redirect(url_for('home'))
-
-
-
-
-  
-#   cart_products = []
-#   product_ids = session['cart']
-#   for product_id in product_ids:
-#     product =db.get_product_by_id(product_id)
-#     if product:
-#       cart_products.append(product)
-#     else:
-#       flash(f"Product with ID {product_id} not found!")
-  
-#   return render_template('cart.html',products=cart_products)  
-
-
-# @app.route('/remove_from_cart/<int:product_id>')
-# def remove_from_cart(product_id):
-#   if 'cart' in session:
-#     try:
-#       session['cart'].remove(product_id)
-#       flash(f'product {product_id} removed from cart!')
-#     except ValueError:
-#       flash(f'product {product_id} not found in cart!')
+    # Initiate STK Push
+    try:
+        stk_response = initiate_stk_push(phone_number, amount, 'UnityStore', 'Unity payment')
+        checkout_id = stk_response.get('CheckoutRequestID')
+        # # Create order in DB
+        result = create_order(user_id, total, cart_items)
+        if not result["success"]:
+            return jsonify(result)
+        order_id = result["order_id"]
+        print(f"Created order ID: {order_id}")
+        # save mapping in DB
+        mpesa_payment_mapping(order_id, checkout_id)
+        # You can also save order_id here if you want
+    
+        return jsonify(
+          {"success": True, 
+                        "stk_response": stk_response
+                        })
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
       
-#     else:
-#       flash(f'No products in cart to remove.')
-#     return redirect(url_for('view_cart'))
+      
+
+@app.route('/callback', methods=['POST', 'GET'])
+def callback():
+  if request.method == 'POST':
+    
+    data = request.get_json()
+    body = data.get('Body', {})
+    print(f'"Received callback data:" {json.dumps(data, indent=4)}')
+    stkCallback = body.get('stkCallback', {})
+    resultCode = stkCallback.get('ResultCode')
+    resultDesc = stkCallback.get('ResultDesc')
+    metadata = stkCallback.get('CallbackMetadata', {})
+    checkout_id = stkCallback.get('CheckoutRequestID')
+    print(f'metadata: {json.dumps(metadata, indent=4)}')
+    items = metadata.get('Item', []) if metadata else [] #transaction details
+    print(f'items: {json.dumps(items, indent=4)}')
+    meta = {} # to hold parsed metadata
+    meta = {item.get('Name'): item.get('Value') for item in items}
+    print("Parsed metadata:", json.dumps(meta, indent=4))
+    order_id = find_order_id_from_checkout_map(checkout_id)
+    if resultCode == 0:
+        # Payment successful
+        receipt = meta.get('MpesaReceiptNumber')
+        amount = meta.get('Amount')
+        phone = meta.get('PhoneNumber')
+        transaction_date = meta.get('TransactionDate')
+        user_id = get_user_by_order_id(order_id)
+        print(f'order_id: {order_id}, user_id: {user_id}, amount: {amount}, receipt: {receipt}, phone: {phone}, transaction_date: {transaction_date}')
+        save_payments(order_id,user_id,'mpesa',amount,receipt,phone,'success',resultCode,resultDesc,transaction_date)
+        
+        print("Payment successful:", resultDesc)
+        # Here you can update order status in your database
+        return jsonify(
+          { 
+            "success": True,
+            "order_id": order_id, 
+            "message": "Payment successful", 
+            "receipt": receipt, 
+            "amount": amount, 
+            "phone": phone })
+        # Payment failed
+    else:
+      print("Payment failed:", resultDesc)
+      user_id = get_user_by_order_id(order_id)
+      save_payments(
+          order_id,
+          user_id,
+          'mpesa',
+          meta.get('Amount') or 0,
+          meta.get('MpesaReceiptNumber') or 'N/A',
+          meta.get('PhoneNumber') or 'N/A',
+          'failed',
+          resultCode,
+          resultDesc,
+          meta.get('TransactionDate')
+      )
+
+      return jsonify({
+          "success": False,
+          "order_id": order_id,
+          "message": f"Payment failed: {resultDesc}"
+      })
+
+  else:
+    return "MPESA Callback Endpoint"
+
+
+
+@app.route('/payment_status/<checkout_id>', methods=['GET'])
+def payment_status(checkout_id):
+    # Look up order/payment by checkout_id
+    order_id = find_order_id_from_checkout_map(checkout_id)
+    payment = get_payment_by_order_id(order_id)  # implement this to query DB
+
+    if payment:
+        return jsonify({
+            "success": payment['status'] == 'success',
+            "order_id": order_id,
+            "status": payment['status'],
+            "message": payment['result_desc'],
+            "amount": payment['amount'],
+            "receipt": payment.get('receipt')
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "order_id": order_id,
+            "status": "pending",
+            "message": "Payment not yet processed"
+        })
+        
+        
+
+@app.route('/admin/users')
+def admin_all_users():
+  raw_users = fetch_all_users()
+  print(f'raw users{raw_users}')
+  users = []
+  total_users = len(raw_users)
+  logging.info(f"users:{raw_users}")
+  for user in raw_users:
+        user_dict = {
+            "id": user[0],
+            "name": f"{user[1]} {user[2]}",
+            "email": user[4],
+            "joinDate": "2023-01-01",   # TODO: replace with real date column
+            "status": "active" if user[7] else "inactive"
+        }
+        users.append(user_dict)
+        print(f"users dic:{users}")
+
+  return jsonify({"users": users, 
+                  "total_users": total_users})
+        
+
+@app.route('/admin', methods=['GET', 'POST'])
+def admin():
+  return render_template('admin_dashboard.html')
+
+
+# admin orders stats
+@app.route('/admin/orders/stats')
+def admin_orders_stats():
+    total_orders = fetch_admin_order_stats()
+    return jsonify({
+        "total_orders": total_orders
+    })
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
       
 if __name__=='__main__':
   app.run(debug=True)
