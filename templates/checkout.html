@@ -54,7 +54,11 @@
                 <button class="btn btn-secondary pay-option" data-method="stripe">
                 <i class="fas fa-credit-card"></i> Pay with Stripe
                 </button>
+                <button class="btn btn-pesapal pay-option" data-method="pesapal">
+                    <i class="fas fa-credit-card"></i> Pay with Pesapal
+                </button>
             </div>
+
 
             <!-- Step 2: M‑Pesa form -->
             <form id="mpesa-form" class="payment-form hidden" method="POST" action="/pay/mpesa">
@@ -68,6 +72,17 @@
                 <label for="card">Card Number:</label>
                 <input type="text" id="card" name="card_number" placeholder="1234 5678 9012 3456" required>
                 <button type="submit" class="stripe-btn">Confirm Card Payment</button>
+            </form>
+
+            <!-- Step 2: Pesapal form (add after Stripe form) -->
+            <form id="pesapal-form" class="payment-form hidden">
+                <div class="payment-info">
+                    <p><i class="fas fa-lock"></i> Pay securely with Pesapal</p>
+                    <p><strong>Total: Ksh <span id="pesapal-total">{{ total }}</span></strong></p>
+                </div>
+                <button type="button" class="pesapal-btn" id="pesapal-pay-btn">
+                    <i class="fas fa-credit-card"></i> Pay with Pesapal
+                </button>
             </form>
 
             <!-- Step 3: Feedback -->

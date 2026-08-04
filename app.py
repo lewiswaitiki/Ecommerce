@@ -7,7 +7,8 @@ import logging
 from db import fetch_all_users, get_connection , create_product_table,get_cursor, get_filtered_products, get_user_by_id, insert_product , insert_sample_products,get_all_products,get_product_by_id, save_payments,update_cart_helper,delete_from_cart,get_cart_item_count,fetch_cart,create_order,get_order_details,register_details,get_all_categories, verify_user_login,add_item_to_cart,mpesa_payment_mapping,find_order_id_from_checkout_map,get_user_by_order_id,get_payment_by_order_id,fetch_admin_order_stats
 from stk import initiate_stk_push
 logging.basicConfig(level=logging.INFO)
-
+import requests
+import time
 load_dotenv('.env')
 
 #initialize the flask app
@@ -476,16 +477,164 @@ def admin_orders_stats():
 
 
 
-  
+
+@app.route('/pay/pesapal', methods=['POST'])
+def pay_pesapal():
+    """
+    Simple Pesapal payment integration
+    Sends request to terminal service running on port 8080
+    """
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 401
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "Invalid JSON"}), 400
+        
+        user_id = session['user_id']
+        amount = data.get('amount', 0)
+        payload = data.get('payload', {})
+        
+        # Get cart items
+        cart_items, total, item_count = fetch_cart(user_id)
+        if not cart_items:
+            return jsonify({"success": False, "message": "Cart is empty"}), 400
+        
+        # Create order in database
+        order_result = create_order(user_id, total, cart_items)
+        if not order_result["success"]:
+            return jsonify(order_result)
+        
+        order_id = order_result["order_id"]
+        
+        # Update payload with order reference
+        payload['reference'] = f"Order_{order_id}_{int(time.time())}"
+        payload['paymentdetails']['amount'] = float(total)
+        
+        # SEND TO TERMINAL SERVICE
+        terminal_url = 'http://127.0.0.1:8080/'
+        
+        print(f"📤 Sending to terminal service: {payload}")
+        
+        try:
+            response = requests.post(
+                terminal_url,
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=30
+            )
+            
+            print(f"📥 Terminal service response: {response.status_code}")
+            print(f"📥 Response body: {response.text}")
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                
+                # Check if payment was successful
+                response_msg = response_data.get('responsemsg', '').upper()
+                response_code = response_data.get('responsecode', '')
+                
+                # Consider "APPROVAL" or "APPROVED" as success
+                if response_msg in ['APPROVAL', 'APPROVED'] or response_code in ['00', '0']:
+                    # Success - save payment
+                    save_pesapal_payment(
+                        order_id=order_id,
+                        user_id=user_id,
+                        amount=total,
+                        status='success',
+                        response_code=response_code or '00',
+                        response_msg=response_data.get('responsemsg', 'APPROVED'),
+                        response_desc=response_data.get('responsedesc', 'Payment approved')
+                    )
+                    
+                    # Return success with 200 status
+                    return jsonify({
+                        "success": True,
+                        "order_id": order_id,
+                        "message": "Payment successful",
+                        "response": response_data
+                    }), 200
+                else:
+                    # Payment declined
+                    save_pesapal_payment(
+                        order_id=order_id,
+                        user_id=user_id,
+                        amount=total,
+                        status='failed',
+                        response_code=response_code or '99',
+                        response_msg=response_data.get('responsemsg', 'DECLINED'),
+                        response_desc=response_data.get('responsedesc', 'Payment declined')
+                    )
+                    
+                    return jsonify({
+                        "success": False,
+                        "order_id": order_id,
+                        "message": f"Payment declined: {response_data.get('responsedesc', 'Unknown error')}",
+                        "response": response_data
+                    }), 200  # Changed to 200 to handle error gracefully
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": f"Terminal service returned status {response.status_code}"
+                }), 200  # Changed to 200
+                
+        except requests.exceptions.ConnectionError:
+            return jsonify({
+                "success": False,
+                "message": "Cannot connect to terminal service on port 8080. Is it running?"
+            }), 200  # Changed to 200
+        except requests.exceptions.Timeout:
+            return jsonify({
+                "success": False,
+                "message": "Terminal service timeout. Please try again."
+            }), 200  # Changed to 200
+        except Exception as e:
+            return jsonify({
+                "success": False,
+                "message": f"Terminal service error: {str(e)}"
+            }), 200  # Changed to 200
+            
+    except Exception as e:
+        print(f"❌ Error in pay_pesapal: {str(e)}")
+        return jsonify({
+            "success": False,
+            "message": f"Error: {str(e)}"
+        }), 200  # Changed to 200
 
 
-
-
-
-
-
-
-
+def save_pesapal_payment(order_id, user_id, amount, status, response_code, response_msg, response_desc):
+    """Save Pesapal payment to database"""
+    conn = get_connection()
+    cursor = get_cursor(conn)
+    
+    try:
+        cursor.execute("""
+            INSERT INTO payments 
+            (order_id, user_id, provider, amount, receipt_number, phone, status, result_code, result_desc, transaction_date)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+        """, (
+            order_id,
+            user_id,
+            'pesapal',
+            amount,
+            response_code,
+            '',
+            status,
+            response_code,
+            f"{response_msg}: {response_desc}"
+        ))
+        
+        conn.commit()
+        print(f"✅ Pesapal payment saved for order {order_id}")
+        return True
+    except Exception as e:
+        conn.rollback()
+        print(f"❌ Error saving Pesapal payment: {str(e)}")
+        raise
+    finally:
+        cursor.close()
+        conn.close()
       
 if __name__=='__main__':
   app.run(debug=True)

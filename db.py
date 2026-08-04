@@ -384,7 +384,7 @@ def register_details(*args):
   print(password)
   
   try:
-    query = '''INSERT into USERS (firstname,lastname,username,phone,email,password_hash) VALUES (%s,%s,%s,%s,%s,%s)'''
+    query = '''INSERT into users (firstname,lastname,username,phone,email,password_hash) VALUES (%s,%s,%s,%s,%s,%s)'''
     cursor.execute(query,(args[0],args[1],args[2],args[3],args[4],password))
     conn.commit()
     print('user registered successfully')

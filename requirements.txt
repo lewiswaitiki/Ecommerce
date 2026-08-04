@@ -1,0 +1,4 @@
+dotenv
+flask
+requests
+psycopg2-binary
